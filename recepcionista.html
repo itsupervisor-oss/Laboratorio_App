@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Plexus - Recepción</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        
+        .header {
+            display: flex; justify-content: space-between; align-items: center; 
+            background: linear-gradient(90deg, #001f4d 0%, #003366 100%); 
+            color: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px;
+        }
+        .header h1 { margin: 0; font-size: 1.8rem; color: #ffff00; }
+        .header p { margin: 5px 0 0 0; font-size: 1rem; opacity: 0.9; }
+        
+        .btn-refresh {
+            background: #ffff00; color: #001f4d; border: none; padding: 12px 24px; 
+            border-radius: 8px; font-weight: bold; cursor: pointer;
+        }
+        
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        thead { background: #001f4d; color: white; text-align: left; }
+        th, td { padding: 15px 20px; border-bottom: 1px solid #ddd; }
+        
+        /* Badges de estado */
+        .badge-esperando { background: #ffcc00; color: #856600; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
+        .badge-llamado { background: #17a2b8; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
+        .badge-finalizado { background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
+        
+        /* Botones de Acción */
+        .btn-llamar { background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        .btn-atender { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-disabled { background: #ccc; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: not-allowed; font-weight: bold; }
+        
+        #pantalla-error { display: none; text-align: center; margin-top: 100px; color: red; }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-error">
+        <h1>⚠️ ACCESO DENEGADO</h1>
+        <p>Este equipo no tiene configurada una Sucursal.</p>
+    </div>
+
+    <div id="main-dashboard">
+        <div class="header">
+            <div>
+                <h1>Recepción - Control de Sala</h1>
+                <p id="info-sucursal">Cargando ubicación...</p>
+            </div>
+            <button class="btn-refresh" onclick="cargarTurnos()">↻ Actualizar Lista</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Paciente</th>
+                    <th>Servicio</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-turnos">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        const parametrosURL = new URLSearchParams(window.location.search);
+        const ciudadActiva = parametrosURL.get('ciudad');
+        const sucursalActiva = parametrosURL.get('sucursal');
+
+        if (!ciudadActiva || !sucursalActiva) {
+            document.getElementById('main-dashboard').style.display = 'none';
+            document.getElementById('pantalla-error').style.display = 'block';
+        } else {
+            document.getElementById('info-sucursal').innerText = `Ciudad: ${ciudadActiva} | Sucursal: ${sucursalActiva}`;
+            cargarTurnos();
+        }
+
+        async function cargarTurnos() {
+            try {
+                const respuesta = await fetch(`http://localhost:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
+                const turnos = await respuesta.json();
+                const tbody = document.getElementById('tabla-turnos');
+                tbody.innerHTML = ''; 
+
+                turnos.forEach(turno => {
+                    const tr = document.createElement('tr');
+                    
+                    let badgeEstado = '';
+                    let botonesAccion = '';
+
+                    if (turno.estado === 'Esperando') {
+                        badgeEstado = `<span class="badge-esperando">Esperando</span>`;
+                        botonesAccion = `<button class="btn-llamar" onclick="cambiarEstado(${turno.id}, 'Llamado')">Llamar</button>`;
+                    } 
+                    else if (turno.estado === 'Llamado') {
+                        badgeEstado = `<span class="badge-llamado">En Atención</span>`;
+                        botonesAccion = `<button class="btn-atender" onclick="cambiarEstado(${turno.id}, 'Finalizado')">Finalizar Atención</button>`;
+                    } 
+                    else {
+                        badgeEstado = `<span class="badge-finalizado">Atendido</span>`;
+                        botonesAccion = `<button class="btn-disabled" disabled>Completado</button>`;
+                    }
+
+                    // AQUI ESTABA EL DETALLE: Cada dato debe estar envuelto en sus etiquetas <td> y </td>
+                    tr.innerHTML = `
+                        <td><strong>#${turno.id}</strong></td>
+                        <td>${turno.paciente}</td>
+                        <td>${turno.servicio}</td>
+                        <td>${badgeEstado}</td>
+                        <td>${botonesAccion}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error cargando turnos:", error);
+            }
+        }
+
+        async function cambiarEstado(idTurno, nuevoEstado) {
+            try {
+                const respuesta = await fetch(`http://localhost:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { 
+                    method: 'PUT' 
+                });
+                
+                if(respuesta.ok) {
+                    cargarTurnos(); 
+                } else {
+                    alert("Error al actualizar el estado.");
+                }
+            } catch (error) {
+                alert("No se pudo conectar con el servidor.");
+            }
+        }
+    </script>
+</body>
+</html>

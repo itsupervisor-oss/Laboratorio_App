@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Plexus BI - Dirección General</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #eef2f5; margin: 0; padding: 20px; color: #333; }
+        
+        .header {
+            display: flex; justify-content: space-between; align-items: center; 
+            background: linear-gradient(90deg, #1a2a6c, #11998e, #38ef7d); 
+            color: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .header h1 { margin: 0; font-size: 2rem; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .header p { margin: 5px 0 0 0; font-size: 1.1rem; opacity: 0.9; }
+        
+        .btn-refresh {
+            background: white; color: #1a2a6c; border: none; padding: 12px 24px; 
+            border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-refresh:hover { background: #f0f0f0; transform: scale(1.05); }
+
+        /* Contenedor de los gráficos */
+        .dashboard-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+
+        .card {
+            background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .card h2 { margin-top: 0; color: #001f4d; font-size: 1.3rem; }
+        
+        /* Ajuste para que los gráficos no se salgan de la tarjeta */
+        .chart-container { position: relative; width: 100%; height: 300px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>Plexus BI - Panel Gerencial</h1>
+            <p>Visión global en tiempo real</p>
+        </div>
+        <button class="btn-refresh" onclick="cargarEstadisticas()">↻ Actualizar Datos</button>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>Volumen de Pacientes por Sucursal</h2>
+            <div class="chart-container">
+                <canvas id="graficoPacientes"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Promedio de Satisfacción (1 al 5)</h2>
+            <div class="chart-container">
+                <canvas id="graficoSatisfaccion"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables para guardar los gráficos y poder destruirlos al actualizar
+        let chartPacientes = null;
+        let chartSatisfaccion = null;
+
+        async function cargarEstadisticas() {
+            try {
+                // 1. Llamamos a nuestra nueva ruta de Python
+                const respuesta = await fetch('http://localhost:8000/estadisticas');
+                const datos = await respuesta.json();
+
+                // 2. Extraemos los datos para el Gráfico 1 (Pacientes)
+                const ubicacionesTurnos = datos.turnos.map(t => t.ubicacion);
+                const totalesPacientes = datos.turnos.map(t => t.total);
+                const esperandoPacientes = datos.turnos.map(t => t.esperando);
+
+                // 3. Extraemos los datos para el Gráfico 2 (Satisfacción)
+                // ¡LA MAGIA: Le pegamos la cantidad de votos al lado del nombre!
+                const ubicacionesVotos = datos.satisfaccion.map(v => `${v.ubicacion} (${v.votos} votos)`);
+                
+                const promediosVotos = datos.satisfaccion.map(v => v.promedio);
+
+                // --- DIBUJAR GRÁFICO 1 ---
+                const ctxPacientes = document.getElementById('graficoPacientes').getContext('2d');
+                if (chartPacientes) chartPacientes.destroy(); // Limpiar el anterior si existe
+                
+                chartPacientes = new Chart(ctxPacientes, {
+                    type: 'bar', // Tipo barra
+                    data: {
+                        labels: ubicacionesTurnos,
+                        datasets: [
+                            {
+                                label: 'Total Atendidos',
+                                data: totalesPacientes,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'En Espera',
+                                data: esperandoPacientes,
+                                backgroundColor: 'rgba(255, 206, 86, 0.7)',
+                                borderColor: 'rgba(255, 206, 86, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                // --- DIBUJAR GRÁFICO 2 ---
+                const ctxSatisfaccion = document.getElementById('graficoSatisfaccion').getContext('2d');
+                if (chartSatisfaccion) chartSatisfaccion.destroy();
+                
+                chartSatisfaccion = new Chart(ctxSatisfaccion, {
+                    type: 'line', // Tipo línea con área
+                    data: {
+                        labels: ubicacionesVotos,
+                        datasets: [{
+                            label: 'Puntuación Promedio (Estrellas)',
+                            data: promediosVotos,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3 // Curva suave
+                        }]
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { min: 0, max: 5 } } // El máximo siempre es 5 estrellas
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error al cargar las estadísticas:", error);
+            }
+        }
+
+        // Cargar automáticamente al abrir la página
+        window.onload = cargarEstadisticas;
+    </script>
+</body>
+</html>

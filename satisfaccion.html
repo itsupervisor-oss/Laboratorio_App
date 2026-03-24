@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plexus - Satisfacción</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- ESTILOS VISUALES --- */
+        body {
+            margin: 0; padding: 0; display: flex; justify-content: center; align-items: center;
+            height: 100vh; background: linear-gradient(180deg, #001f4d 0%, #003366 100%);
+            font-family: 'Montserrat', sans-serif; overflow: hidden; color: white; text-align: center;
+        }
+
+        .main-container {
+            width: 100%; max-width: 800px; padding: 20px;
+        }
+
+        .title { color: #ffff00; font-size: 3.5rem; margin-bottom: 10px; }
+        .subtitle { font-size: 1.5rem; margin-bottom: 50px; font-weight: 400; }
+
+        /* Contenedor de las caritas */
+        .caritas-container {
+            display: flex; justify-content: space-between; gap: 15px;
+        }
+
+        /* Estilo de cada botón de carita */
+        .carita-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            font-size: 5rem; /* Emojis gigantes */
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-grow: 1;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+
+        /* Efecto al pasar el mouse o tocar */
+        .carita-btn:hover, .carita-btn:active {
+            transform: scale(1.1);
+            background: rgba(255, 255, 0, 0.2);
+            border-color: #ffff00;
+        }
+
+        /* Textito debajo de la carita */
+        .carita-label {
+            font-size: 1rem; color: white; font-weight: 600; font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Pantalla de Agradecimiento (Oculta por defecto) */
+        #pantalla-gracias {
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        
+        #pantalla-encuesta {
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .plexus-logo { color: white; font-size: 2rem; font-weight: 700; position: absolute; bottom: 30px; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+
+        <div id="pantalla-encuesta">
+            <h1 class="title">¿Cómo te atendimos hoy?</h1>
+            <h2 class="subtitle">Tu opinión nos ayuda a mejorar nuestro servicio.</h2>
+
+            <div class="caritas-container">
+                <button class="carita-btn" onclick="enviarVoto(1)">
+                    😡<span class="carita-label">Muy Mal</span>
+                </button>
+                <button class="carita-btn" onclick="enviarVoto(2)">
+                    😟<span class="carita-label">Mal</span>
+                </button>
+                <button class="carita-btn" onclick="enviarVoto(3)">
+                    😐<span class="carita-label">Regular</span>
+                </button>
+                <button class="carita-btn" onclick="enviarVoto(4)">
+                    🙂<span class="carita-label">Bien</span>
+                </button>
+                <button class="carita-btn" onclick="enviarVoto(5)">
+                    🤩<span class="carita-label">Excelente</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="pantalla-gracias">
+            <h1 style="font-size: 5rem; margin: 0;">💚</h1>
+            <h1 class="title">¡Gracias por tu calificación!</h1>
+            <h2 class="subtitle">Que tengas un excelente día.</h2>
+        </div>
+
+    </div>
+
+    <div class="plexus-logo">plexus</div>
+
+    <script>
+        // 1. LEER LA URL: Buscamos los parámetros ocultos de configuración
+        const parametrosURL = new URLSearchParams(window.location.search);
+        const ciudadConfigurada = parametrosURL.get('ciudad');
+        const sucursalConfigurada = parametrosURL.get('sucursal');
+
+        // 2. SEGURIDAD: Bloquear la pantalla si la tablet no fue configurada por sistemas
+        if (!ciudadConfigurada || !sucursalConfigurada) {
+            alert("⚠️ ERROR DE CONFIGURACIÓN:\nEsta tablet de satisfacción no tiene asignada una ciudad o sucursal.\nPor favor, contacte a soporte técnico.");
+            document.querySelector('.main-container').style.display = 'none'; // Ocultamos las caritas
+        }
+
+        // Función principal para registrar el voto
+        async function enviarVoto(puntajeSeleccionado) {
+            
+            // 3. Armamos el paquete JSON sumando la ciudad y la sucursal de la URL
+            const datos = { 
+                ciudad: ciudadConfigurada,
+                sucursal: sucursalConfigurada,
+                puntaje: puntajeSeleccionado 
+            };
+
+            try {
+                // Hacemos la llamada a Python
+                const respuesta = await fetch('http://localhost:8000/votar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos)
+                });
+
+                if (respuesta.ok) {
+                    // Magia visual: Ocultar caritas, mostrar "Gracias"
+                    document.getElementById('pantalla-encuesta').style.display = 'none';
+                    document.getElementById('pantalla-gracias').style.display = 'flex';
+
+                    // Temporizador: Esperamos 3 segundos y reseteamos el kiosco
+                    setTimeout(() => {
+                        document.getElementById('pantalla-gracias').style.display = 'none';
+                        document.getElementById('pantalla-encuesta').style.display = 'flex';
+                    }, 3000); 
+
+                } else {
+                    console.error("Error del servidor al guardar el voto");
+                }
+            } catch (error) {
+                console.error("Error de conexión:", error);
+            }
+        }
+    </script>
+</body>
+</html>
