@@ -94,8 +94,12 @@
             </div>
 
             <div class="btn-volver" onclick="volverPaso1()">← Volver atrás</div>
+        </div><div id="pantalla-exito" class="oculto" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 40px;">
+            <h1 style="color: #28a745; font-size: 3rem; margin-bottom: 10px;">¡Gracias!</h1>
+            <p style="font-size: 1.5rem; color: #ffffff; text-align: center; max-width: 80%;">
+                Por favor tome asiento, enseguida el personal le llamará por su nombre para atenderlo.
+            </p>
         </div>
-
     </div>
 
     <div class="plexus-logo">
@@ -140,7 +144,6 @@
         async function enviarTurnoFinal(tipoServicio) {
             const nombreFinal = document.getElementById('nombreInput').value;
 
-            // 3. ARMAMOS EL PAQUETE CON LA CIUDAD Y SUCURSAL INCLUIDAS
             const datos = {
                 ciudad: ciudadConfigurada,
                 sucursal: sucursalConfigurada,
@@ -157,10 +160,18 @@
                 });
 
                 if (respuesta.ok) {
-                    const resultado = await respuesta.json();
-                    alert("¡Turno registrado!\n\nPaciente: " + nombreFinal + "\nTicket: #" + resultado.ticket);
-                    document.getElementById('nombreInput').value = "";
-                    volverPaso1();
+                    // 1. Quitamos el alert() feo
+                    // 2. Ocultamos la pantalla de botones y mostramos el mensaje amable
+                    document.getElementById('pantalla-2').classList.add('oculto');
+                    document.getElementById('pantalla-exito').classList.remove('oculto');
+
+                    // 3. Temporizador: Esperamos 4 segundos (4000 milisegundos) y reiniciamos
+                    setTimeout(() => {
+                        document.getElementById('pantalla-exito').classList.add('oculto');
+                        document.getElementById('nombreInput').value = ""; // Limpiamos el nombre
+                        volverPaso1(); // Volvemos a la pantalla principal
+                    }, 5000); 
+
                 } else {
                     alert("Hubo un error técnico al registrar su turno.");
                 }

@@ -34,7 +34,7 @@ def obtener_turnos(ciudad: str, sucursal: str):
     
     # 1. Hacemos el SELECT pidiendo exactamente las 4 columnas que necesitamos
     cursor.execute("""
-        SELECT id_turno, nombre_paciente, tipo_servicio, estado 
+        SELECT id_turno, nombre_paciente, tipo_paciente, tipo_servicio, estado 
         FROM turnos 
         WHERE ciudad = ? AND sucursal = ?
         ORDER BY id_turno DESC
@@ -46,7 +46,7 @@ def obtener_turnos(ciudad: str, sucursal: str):
     # 2. LA MAGIA: Convertimos la fila cruda de SQL en un paquete con etiquetas
     # t es id_turno, t es nombre, t es servicio, t es estado
     lista_formateada = [
-        {"id": t[0], "paciente": t[1], "servicio": t[2], "estado": t[3]} 
+        {"id": t[0], "paciente": t[1], "tipo": t[2], "servicio": t[3], "estado": t[4]} 
         for t in turnos
     ]
     
