@@ -72,20 +72,29 @@
 
             <div class="caritas-container">
                 <button class="carita-btn" onclick="enviarVoto(1)">
-                    😡<span class="carita-label">Muy Mal</span>
+                    😡
                 </button>
-                <button class="carita-btn" onclick="enviarVoto(2)">
-                    😟<span class="carita-label">Mal</span>
-                </button>
+
                 <button class="carita-btn" onclick="enviarVoto(3)">
-                    😐<span class="carita-label">Regular</span>
+                    😐
                 </button>
-                <button class="carita-btn" onclick="enviarVoto(4)">
-                    🙂<span class="carita-label">Bien</span>
-                </button>
+
                 <button class="carita-btn" onclick="enviarVoto(5)">
-                    🤩<span class="carita-label">Excelente</span>
+                    🙂
                 </button>
+            </div>
+        </div>
+
+        <div id="pantalla-feedback" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
+            <h1 class="title" style="font-size: 2.5rem;">¿En qué podemos mejorar?</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">Déjanos un breve comentario para ayudarnos a brindarte un mejor servicio.</p>
+            
+            <textarea id="textoComentario" rows="4" placeholder="Escribe tu comentario aquí..." 
+                      style="width: 100%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 1.2rem; font-family: 'Montserrat', sans-serif; border: none; margin-bottom: 20px; outline: none;"></textarea>
+            
+            <div style="display: flex; gap: 15px;">
+                <button onclick="enviarVotoFinal()" style="background: #28a745; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 1.2rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">Enviar</button>
+                <button onclick="saltarFeedback()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 15px 30px; border-radius: 10px; font-size: 1.2rem; cursor: pointer;">Omitir</button>
             </div>
         </div>
 
@@ -105,24 +114,48 @@
         const ciudadConfigurada = parametrosURL.get('ciudad');
         const sucursalConfigurada = parametrosURL.get('sucursal');
 
-        // 2. SEGURIDAD: Bloquear la pantalla si la tablet no fue configurada por sistemas
+        // 2. SEGURIDAD
         if (!ciudadConfigurada || !sucursalConfigurada) {
-            alert("⚠️ ERROR DE CONFIGURACIÓN:\nEsta tablet de satisfacción no tiene asignada una ciudad o sucursal.\nPor favor, contacte a soporte técnico.");
-            document.querySelector('.main-container').style.display = 'none'; // Ocultamos las caritas
+            alert("⚠️ ERROR DE CONFIGURACIÓN:\nEsta tablet de satisfacción no tiene asignada una ciudad o sucursal.");
+            document.querySelector('.main-container').style.display = 'none';
         }
 
-        // Función principal para registrar el voto
-        async function enviarVoto(puntajeSeleccionado) {
-            
-            // 3. Armamos el paquete JSON sumando la ciudad y la sucursal de la URL
+        // --- NUEVA LÓGICA DE VOTACIÓN ---
+        let votoTemporal = 0; // Guardamos el voto temporalmente
+
+        // Paso 1: El paciente presiona una carita
+        function enviarVoto(puntajeSeleccionado) {
+            votoTemporal = puntajeSeleccionado;
+
+            if (puntajeSeleccionado === 5) {
+                // Si es 5 (Excelente), enviamos directo a la base de datos
+                enviarVotoFinal();
+            } else {
+                // Si es 1 (Malo) o 3 (Normal), mostramos la pregunta
+                document.getElementById('pantalla-encuesta').style.display = 'none';
+                document.getElementById('pantalla-feedback').style.display = 'flex';
+            }
+        }
+
+        // Si el paciente presiona "Omitir" en la pantalla de feedback
+        function saltarFeedback() {
+            document.getElementById('textoComentario').value = ""; // Limpiamos texto
+            enviarVotoFinal();
+        }
+
+        // Paso 2: Enviar los datos a Python
+        async function enviarVotoFinal() {
+            // Capturamos lo que escribió (o queda vacío si no escribió nada/omitió)
+            const comentarioIngresado = document.getElementById('textoComentario') ? document.getElementById('textoComentario').value : "";
+
             const datos = { 
                 ciudad: ciudadConfigurada,
                 sucursal: sucursalConfigurada,
-                puntaje: puntajeSeleccionado 
+                puntaje: votoTemporal,
+                comentario: comentarioIngresado
             };
 
             try {
-                // Hacemos la llamada a Python
                 const respuesta = await fetch('http://localhost:8000/votar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -130,14 +163,24 @@
                 });
 
                 if (respuesta.ok) {
-                    // Magia visual: Ocultar caritas, mostrar "Gracias"
+                    // Magia visual: Ocultamos encuestas y mostramos GRACIAS
                     document.getElementById('pantalla-encuesta').style.display = 'none';
+                    
+                    // Solo intentamos ocultar el feedback si existe en el HTML
+                    const pantallaFeedback = document.getElementById('pantalla-feedback');
+                    if (pantallaFeedback) {
+                        pantallaFeedback.style.display = 'none';
+                    }
+                    
                     document.getElementById('pantalla-gracias').style.display = 'flex';
 
-                    // Temporizador: Esperamos 3 segundos y reseteamos el kiosco
+                    // Temporizador: Esperamos 3 segundos y reseteamos la tablet
                     setTimeout(() => {
                         document.getElementById('pantalla-gracias').style.display = 'none';
                         document.getElementById('pantalla-encuesta').style.display = 'flex';
+                        if (document.getElementById('textoComentario')) {
+                            document.getElementById('textoComentario').value = ''; 
+                        }
                     }, 3000); 
 
                 } else {

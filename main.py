@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional # 🟢 Asegúrate de tener esto importado arriba
 import sqlite3
 
 app = FastAPI(title="API del Laboratorio Multi-Sucursal")
@@ -24,6 +26,7 @@ class Voto(BaseModel):
     ciudad: str
     sucursal: str
     puntaje: int
+    comentario: Optional[str] = "" # 🟢 NUEVO CAMPO OPCIONAL
 
 # --- RUTAS WEB ---
 
@@ -69,25 +72,55 @@ def registrar_paciente(turno: NuevoTurno):
     return {"mensaje": "¡Paciente registrado exitosamente!", "ticket": nuevo_id}
 
 @app.put("/turnos/{id_turno}")
-def atender_paciente(id_turno: int):
+def actualizar_estado(id_turno: int, nuevo_estado: str):
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
-    cursor.execute("UPDATE turnos SET estado = 'Finalizado', hora_atencion = CURRENT_TIMESTAMP WHERE id_turno = ?", (id_turno,))
+
+    # Capturamos la hora exacta en el momento en que se presiona cualquier botón
+    hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if nuevo_estado == "Llamado":
+        # 🟢 RESTAURADO: Guarda la hora_atencion cuando la recepcionista presiona "Llamar"
+        cursor.execute("""
+            UPDATE turnos 
+            SET estado = ?, hora_atencion = ? 
+            WHERE id_turno = ?
+        """, (nuevo_estado, hora_actual, id_turno))
+        
+    elif nuevo_estado == "Registrado":
+        # 🟣 NUEVO: Guarda la hora_registrado cuando presiona el botón morado
+        cursor.execute("""
+            UPDATE turnos 
+            SET estado = ?, hora_registrado = ? 
+            WHERE id_turno = ?
+        """, (nuevo_estado, hora_actual, id_turno))
+        
+    else:
+        # Para los demás estados (como "Finalizado")
+        cursor.execute("""
+            UPDATE turnos 
+            SET estado = ? 
+            WHERE id_turno = ?
+        """, (nuevo_estado, id_turno))
+
     conexion.commit()
     conexion.close()
-    return {"mensaje": f"Turno #{id_turno} marcado como Finalizado."}
+    return {"mensaje": f"Estado cambiado a {nuevo_estado} exitosamente"}
 
 @app.post("/votar")
 def registrar_voto(voto: Voto):
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
     
-    # Insertamos los 3 campos
-    cursor.execute("INSERT INTO satisfaccion (ciudad, sucursal, puntaje) VALUES (?, ?, ?)", (voto.ciudad, voto.sucursal, voto.puntaje))
+    # 2. Actualizamos el INSERT para que guarde los 4 datos
+    cursor.execute("""
+        INSERT INTO satisfaccion (ciudad, sucursal, puntaje, comentario)
+        VALUES (?, ?, ?, ?)
+    """, (voto.ciudad, voto.sucursal, voto.puntaje, voto.comentario))
     
     conexion.commit()
     conexion.close()
-    return {"mensaje": "¡Voto registrado con éxito!", "puntaje": voto.puntaje}
+    return {"mensaje": "Voto registrado correctamente"}
 
 # NUEVO PUT: Ahora recibe si queremos "Llamar" o "Atender" al paciente
 @app.put("/turnos/{id_turno}")
