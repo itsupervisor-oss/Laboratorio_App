@@ -6,148 +6,125 @@
     <title>Plexus - Satisfacción</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- ESTILOS VISUALES --- */
         body {
             margin: 0; padding: 0; display: flex; justify-content: center; align-items: center;
             height: 100vh; background: linear-gradient(180deg, #001f4d 0%, #003366 100%);
             font-family: 'Montserrat', sans-serif; overflow: hidden; color: white; text-align: center;
         }
 
-        .main-container {
-            width: 100%; max-width: 800px; padding: 20px;
-        }
+        .main-container { width: 100%; max-width: 900px; padding: 20px; }
+        .title { color: #ffff00; font-size: 3.2rem; margin-bottom: 10px; }
+        .subtitle { font-size: 1.4rem; margin-bottom: 40px; font-weight: 400; opacity: 0.9; }
 
-        .title { color: #ffff00; font-size: 3.5rem; margin-bottom: 10px; }
-        .subtitle { font-size: 1.5rem; margin-bottom: 50px; font-weight: 400; }
+        .caritas-container { display: flex; justify-content: center; gap: 25px; }
 
-        /* Contenedor de las caritas */
-        .caritas-container {
-            display: flex; justify-content: space-between; gap: 15px;
-        }
-
-        /* Estilo de cada botón de carita */
         .carita-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 20px;
-            font-size: 5rem; /* Emojis gigantes */
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 30px 20px;
+            font-size: 5.5rem;
             cursor: pointer;
-            transition: all 0.2s ease;
-            flex-grow: 1;
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex: 1;
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+            color: white; outline: none;
         }
 
-        /* Efecto al pasar el mouse o tocar */
-        .carita-btn:hover, .carita-btn:active {
-            transform: scale(1.1);
-            background: rgba(255, 255, 0, 0.2);
-            border-color: #ffff00;
+        /* Etiquetas debajo de las caritas */
+        .carita-label { font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; }
+
+        /* Efectos individuales por tipo */
+        .btn-bad:hover { background: rgba(255, 82, 82, 0.2); border-color: #ff5252; transform: scale(1.08); }
+        .btn-neutral:hover { background: rgba(255, 193, 7, 0.2); border-color: #ffc107; transform: scale(1.08); }
+        .btn-good:hover { background: rgba(76, 175, 80, 0.2); border-color: #4caf50; transform: scale(1.08); }
+
+        /* Feedback y Otros */
+        #pantalla-gracias, #pantalla-feedback { display: none; flex-direction: column; align-items: center; justify-content: center; }
+        #pantalla-encuesta { display: flex; flex-direction: column; align-items: center; }
+
+        textarea {
+            width: 100%; max-width: 550px; padding: 20px; border-radius: 15px; 
+            font-size: 1.3rem; border: none; margin-bottom: 25px; font-family: inherit;
         }
 
-        /* Textito debajo de la carita */
-        .carita-label {
-            font-size: 1rem; color: white; font-weight: 600; font-family: 'Montserrat', sans-serif;
-        }
+        .btn-enviar { background: #28a745; color: white; border: none; padding: 18px 40px; border-radius: 12px; font-size: 1.3rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn-omitir { background: transparent; color: white; border: 1px solid white; padding: 18px 40px; border-radius: 12px; font-size: 1.3rem; cursor: pointer; margin-left: 10px; }
 
-        /* Pantalla de Agradecimiento (Oculta por defecto) */
-        #pantalla-gracias {
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-        }
-        
-        #pantalla-encuesta {
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        .plexus-logo { color: white; font-size: 2rem; font-weight: 700; position: absolute; bottom: 30px; letter-spacing: 2px; }
+        .plexus-logo { color: white; font-size: 1.8rem; font-weight: 700; position: absolute; bottom: 30px; letter-spacing: 3px; opacity: 0.6; }
     </style>
 </head>
 <body>
 
     <div class="main-container">
-
         <div id="pantalla-encuesta">
-            <h1 class="title">¿Cómo te atendimos hoy?</h1>
-            <h2 class="subtitle">Tu opinión nos ayuda a mejorar nuestro servicio.</h2>
+            <h1 class="title">¿Cómo fue tu experiencia hoy?</h1>
+            <h2 class="subtitle">Tu opinión es fundamental para brindarte un mejor servicio.</h2>
 
             <div class="caritas-container">
-                <button class="carita-btn" onclick="enviarVoto(1)">
-                    😡
+                <button class="carita-btn btn-bad" onclick="enviarVoto(1)">
+                    🙁 <span class="carita-label">INSATISFECHO</span>
                 </button>
 
-                <button class="carita-btn" onclick="enviarVoto(3)">
-                    😐
+                <button class="carita-btn btn-neutral" onclick="enviarVoto(3)">
+                    😐 <span class="carita-label">REGULAR</span>
                 </button>
 
-                <button class="carita-btn" onclick="enviarVoto(5)">
-                    🙂
+                <button class="carita-btn btn-good" onclick="enviarVoto(5)">
+                    😊 <span class="carita-label">EXCELENTE</span>
                 </button>
             </div>
         </div>
 
-        <div id="pantalla-feedback" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
-            <h1 class="title" style="font-size: 2.5rem;">¿En qué podemos mejorar?</h1>
-            <p style="font-size: 1.2rem; margin-bottom: 20px;">Déjanos un breve comentario para ayudarnos a brindarte un mejor servicio.</p>
+        <div id="pantalla-feedback">
+            <h1 class="title" style="font-size: 2.8rem;">¿Podemos mejorar en algo?</h1>
+            <p style="font-size: 1.3rem; margin-bottom: 25px;">Tu comentario nos ayuda a crecer.</p>
             
-            <textarea id="textoComentario" rows="4" placeholder="Escribe tu comentario aquí..." 
-                      style="width: 100%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 1.2rem; font-family: 'Montserrat', sans-serif; border: none; margin-bottom: 20px; outline: none;"></textarea>
+            <textarea id="textoComentario" rows="4" placeholder="Escribe aquí tu sugerencia..."></textarea>
             
-            <div style="display: flex; gap: 15px;">
-                <button onclick="enviarVotoFinal()" style="background: #28a745; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 1.2rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">Enviar</button>
-                <button onclick="saltarFeedback()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 15px 30px; border-radius: 10px; font-size: 1.2rem; cursor: pointer;">Omitir</button>
+            <div>
+                <button class="btn-enviar" onclick="enviarVotoFinal()">ENVIAR</button>
+                <button class="btn-omitir" onclick="saltarFeedback()">OMITIR</button>
             </div>
         </div>
 
         <div id="pantalla-gracias">
-            <h1 style="font-size: 5rem; margin: 0;">💚</h1>
-            <h1 class="title">¡Gracias por tu calificación!</h1>
-            <h2 class="subtitle">Que tengas un excelente día.</h2>
+            <span style="font-size: 6rem; margin-bottom: 20px;">✨</span>
+            <h1 class="title">¡Muchas gracias!</h1>
+            <h2 class="subtitle">Valoramos mucho tu tiempo y preferencia.</h2>
         </div>
-
     </div>
 
-    <div class="plexus-logo">plexus</div>
+    <div class="plexus-logo">PLEXUS</div>
 
     <script>
-        // 1. LEER LA URL: Buscamos los parámetros ocultos de configuración
         const parametrosURL = new URLSearchParams(window.location.search);
         const ciudadConfigurada = parametrosURL.get('ciudad');
         const sucursalConfigurada = parametrosURL.get('sucursal');
 
-        // 2. SEGURIDAD
         if (!ciudadConfigurada || !sucursalConfigurada) {
-            alert("⚠️ ERROR DE CONFIGURACIÓN:\nEsta tablet de satisfacción no tiene asignada una ciudad o sucursal.");
-            document.querySelector('.main-container').style.display = 'none';
+            alert("⚠️ Error de configuración en la tablet.");
         }
 
-        // --- NUEVA LÓGICA DE VOTACIÓN ---
-        let votoTemporal = 0; // Guardamos el voto temporalmente
+        let votoTemporal = 0;
 
-        // Paso 1: El paciente presiona una carita
         function enviarVoto(puntajeSeleccionado) {
             votoTemporal = puntajeSeleccionado;
-
             if (puntajeSeleccionado === 5) {
-                // Si es 5 (Excelente), enviamos directo a la base de datos
                 enviarVotoFinal();
             } else {
-                // Si es 1 (Malo) o 3 (Normal), mostramos la pregunta
                 document.getElementById('pantalla-encuesta').style.display = 'none';
                 document.getElementById('pantalla-feedback').style.display = 'flex';
             }
         }
 
-        // Si el paciente presiona "Omitir" en la pantalla de feedback
         function saltarFeedback() {
-            document.getElementById('textoComentario').value = ""; // Limpiamos texto
+            if(document.getElementById('textoComentario')) document.getElementById('textoComentario').value = "";
             enviarVotoFinal();
         }
 
-        // Paso 2: Enviar los datos a Python
         async function enviarVotoFinal() {
-            // Capturamos lo que escribió (o queda vacío si no escribió nada/omitió)
             const comentarioIngresado = document.getElementById('textoComentario') ? document.getElementById('textoComentario').value : "";
-
             const datos = { 
                 ciudad: ciudadConfigurada,
                 sucursal: sucursalConfigurada,
@@ -163,28 +140,15 @@
                 });
 
                 if (respuesta.ok) {
-                    // Magia visual: Ocultamos encuestas y mostramos GRACIAS
                     document.getElementById('pantalla-encuesta').style.display = 'none';
-                    
-                    // Solo intentamos ocultar el feedback si existe en el HTML
-                    const pantallaFeedback = document.getElementById('pantalla-feedback');
-                    if (pantallaFeedback) {
-                        pantallaFeedback.style.display = 'none';
-                    }
-                    
+                    document.getElementById('pantalla-feedback').style.display = 'none';
                     document.getElementById('pantalla-gracias').style.display = 'flex';
 
-                    // Temporizador: Esperamos 3 segundos y reseteamos la tablet
                     setTimeout(() => {
                         document.getElementById('pantalla-gracias').style.display = 'none';
                         document.getElementById('pantalla-encuesta').style.display = 'flex';
-                        if (document.getElementById('textoComentario')) {
-                            document.getElementById('textoComentario').value = ''; 
-                        }
+                        if (document.getElementById('textoComentario')) document.getElementById('textoComentario').value = '';
                     }, 3000); 
-
-                } else {
-                    console.error("Error del servidor al guardar el voto");
                 }
             } catch (error) {
                 console.error("Error de conexión:", error);

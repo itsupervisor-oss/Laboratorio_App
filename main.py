@@ -35,41 +35,55 @@ def obtener_turnos(ciudad: str, sucursal: str):
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
     
-    # 1. Hacemos el SELECT pidiendo exactamente las 4 columnas que necesitamos
+    # 1. Obtenemos la fecha de hoy
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    
+    # 2. Pedimos los campos y ordenamos por ID de forma DESCENDENTE
+    # Esto pone el ID más alto (el más nuevo) al principio de la lista
     cursor.execute("""
         SELECT id_turno, nombre_paciente, tipo_paciente, tipo_servicio, estado 
         FROM turnos 
-        WHERE ciudad = ? AND sucursal = ?
+        WHERE ciudad = ? AND sucursal = ? AND date(hora_registro) = ?
         ORDER BY id_turno DESC
-    """, (ciudad, sucursal))
+    """, (ciudad, sucursal, hoy))
     
-    turnos = cursor.fetchall()
+    turnos_crudos = cursor.fetchall()
     conexion.close()
     
-    # 2. LA MAGIA: Convertimos la fila cruda de SQL en un paquete con etiquetas
-    # t es id_turno, t es nombre, t es servicio, t es estado
-    lista_formateada = [
-        {"id": t[0], "paciente": t[1], "tipo": t[2], "servicio": t[3], "estado": t[4]} 
-        for t in turnos
-    ]
+    # 3. Formateamos los datos para enviarlos a la web
+    lista_formateada = []
+    for fila in turnos_crudos:
+        id_t, nombre, tipo, servicio, est = fila
+        lista_formateada.append({
+            "id": id_t,
+            "paciente": nombre,
+            "tipo": tipo,
+            "servicio": servicio,
+            "estado": est
+        })
     
     return lista_formateada
+
 
 @app.post("/turnos")
 def registrar_paciente(turno: NuevoTurno):
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
     
-    # Insertamos los 5 campos
+    # 🟢 OBLIGAMOS a que la hora inicial se guarde con el reloj local de Bolivia
+    hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Insertamos los datos, incluyendo explícitamente la hora_registro
     cursor.execute("""
-        INSERT INTO turnos (ciudad, sucursal, nombre_paciente, tipo_paciente, tipo_servicio) 
-        VALUES (?, ?, ?, ?, ?)
-    """, (turno.ciudad, turno.sucursal, turno.nombre_paciente, turno.tipo_paciente, turno.tipo_servicio))
+        INSERT INTO turnos (ciudad, sucursal, nombre_paciente, tipo_paciente, tipo_servicio, hora_registro) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (turno.ciudad, turno.sucursal, turno.nombre_paciente, turno.tipo_paciente, turno.tipo_servicio, hora_actual))
     
     conexion.commit()
     nuevo_id = cursor.lastrowid
     conexion.close()
     return {"mensaje": "¡Paciente registrado exitosamente!", "ticket": nuevo_id}
+
 
 @app.put("/turnos/{id_turno}")
 def actualizar_estado(id_turno: int, nuevo_estado: str):
@@ -122,54 +136,68 @@ def registrar_voto(voto: Voto):
     conexion.close()
     return {"mensaje": "Voto registrado correctamente"}
 
-# NUEVO PUT: Ahora recibe si queremos "Llamar" o "Atender" al paciente
-@app.put("/turnos/{id_turno}")
-def actualizar_estado_turno(id_turno: int, nuevo_estado: str):
-    conexion = sqlite3.connect("laboratorio.db")
-    cursor = conexion.cursor()
-    
-    # Si lo estamos finalizando, le ponemos la hora de atención. Si solo estamos llamando, solo cambiamos el estado.
-    if nuevo_estado == 'Finalizado':
-        cursor.execute("UPDATE turnos SET estado = ?, hora_atencion = CURRENT_TIMESTAMP WHERE id_turno = ?", (nuevo_estado, id_turno))
-    else:
-        cursor.execute("UPDATE turnos SET estado = ? WHERE id_turno = ?", (nuevo_estado, id_turno))
-        
-    conexion.commit()
-    conexion.close()
-    
-    return {"mensaje": f"Turno #{id_turno} actualizado a {nuevo_estado}."}
 
-# 5. GET: Dashboard Gerencial (Estadísticas agrupadas)
+# 5. GET: Dashboard Gerencial (Estadísticas agrupadas con filtro de fecha)
 @app.get("/estadisticas")
-def obtener_estadisticas():
+def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional[str] = None):
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
+
+    # 🟢 PREPARAMOS LOS FILTROS DE FECHA
+    # Si el usuario mandó fechas, armamos el trozo de código SQL para filtrar
+    filtro_turnos = ""
+    filtro_satisfaccion = ""
+    filtro_eficiencia = ""
+    parametros = []
+
+    if fecha_inicio and fecha_fin:
+        # date() extrae solo el 'YYYY-MM-DD' de nuestra columna para comparar exacto
+        filtro_turnos = "WHERE date(hora_registro) BETWEEN ? AND ?"
+        filtro_satisfaccion = "WHERE date(fecha_hora) BETWEEN ? AND ?"
+        filtro_eficiencia = "AND date(hora_registro) BETWEEN ? AND ?"
+        parametros = [fecha_inicio, fecha_fin]
+
+    # 1. Datos de Turnos (Pacientes)
+    cursor.execute(f"""
+        SELECT sucursal, COUNT(*) as total,
+               SUM(CASE WHEN estado = 'Esperando' THEN 1 ELSE 0 END) as esperando
+        FROM turnos 
+        {filtro_turnos}
+        GROUP BY sucursal
+    """, parametros)
+    turnos_db = cursor.fetchall()
     
-    # Consulta 1: Total de pacientes y cuántos siguen esperando por Sucursal
-    cursor.execute("""
-        SELECT ciudad || ' - ' || sucursal AS ubicacion, 
-               COUNT(id_turno) as total_pacientes,
-               SUM(CASE WHEN estado = 'Esperando' THEN 1 ELSE 0 END) as en_espera
-        FROM turnos
-        GROUP BY ciudad, sucursal
-    """)
-    turnos_stats = cursor.fetchall()
+    lista_turnos = [{"ubicacion": suc, "total": tot, "esperando": esp} for suc, tot, esp in turnos_db]
+
+    # 2. Datos de Satisfacción
+    cursor.execute(f"""
+        SELECT sucursal, COUNT(*) as votos, AVG(puntaje) as promedio
+        FROM satisfaccion 
+        {filtro_satisfaccion}
+        GROUP BY sucursal
+    """, parametros)
+    satisfaccion_db = cursor.fetchall()
     
-    # Consulta 2: Promedio de satisfacción por Sucursal
-    cursor.execute("""
-        SELECT ciudad || ' - ' || sucursal AS ubicacion, 
-               AVG(puntaje) as promedio_satisfaccion,
-               COUNT(id_voto) as total_votos
-        FROM satisfaccion
-        GROUP BY ciudad, sucursal
-    """)
-    votos_stats = cursor.fetchall()
+    lista_satisfaccion = [{"ubicacion": suc, "votos": vot, "promedio": round(prom, 1) if prom else 0} for suc, vot, prom in satisfaccion_db]
+
+    # 3. Datos de Eficiencia (Espera y Atención)
+    cursor.execute(f"""
+        SELECT sucursal, 
+               COALESCE(AVG((julianday(hora_atencion) - julianday(hora_registro)) * 1440), 0) as prom_espera,
+               COALESCE(AVG((julianday(hora_registrado) - julianday(hora_atencion)) * 1440), 0) as prom_atencion
+        FROM turnos 
+        WHERE hora_registro IS NOT NULL AND hora_atencion IS NOT NULL AND hora_registrado IS NOT NULL
+        {filtro_eficiencia}
+        GROUP BY sucursal
+    """, parametros)
+    eficiencia_db = cursor.fetchall()
+    
+    lista_eficiencia = [{"sucursal": suc, "espera": round(esp, 1), "atencion": round(ate, 1)} for suc, esp, ate in eficiencia_db]
+
     conexion.close()
     
-    # Formateamos ambas listas
-    lista_turnos = [{"ubicacion": t[0], "total": t[1], "esperando": t[2]} for t in turnos_stats]
-    
-    # Usamos round(v, 1) para que el promedio tenga solo 1 decimal (ej. 4.5)
-    lista_votos = [{"ubicacion": v[0], "promedio": round(v[1], 1) if v[1] else 0, "votos": v[2]} for v in votos_stats]
-    
-    return {"turnos": lista_turnos, "satisfaccion": lista_votos}
+    return {
+        "turnos": lista_turnos,
+        "satisfaccion": lista_satisfaccion,
+        "eficiencia": lista_eficiencia
+    }

@@ -23,9 +23,8 @@
         }
         .btn-refresh:hover { background: #f0f0f0; transform: scale(1.05); }
 
-        /* Contenedor de los gráficos */
         .dashboard-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;
         }
 
         .card {
@@ -33,8 +32,6 @@
             display: flex; flex-direction: column; align-items: center;
         }
         .card h2 { margin-top: 0; color: #001f4d; font-size: 1.3rem; }
-        
-        /* Ajuste para que los gráficos no se salgan de la tarjeta */
         .chart-container { position: relative; width: 100%; height: 300px; }
     </style>
 </head>
@@ -47,94 +44,129 @@
         </div>
         <button class="btn-refresh" onclick="cargarEstadisticas()">↻ Actualizar Datos</button>
     </div>
-
+    <div style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; justify-content: center; flex-wrap: wrap;">
+        <label style="font-weight: 600;">Desde: <input type="date" id="fechaInicio" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;"></label>
+        <label style="font-weight: 600;">Hasta: <input type="date" id="fechaFin" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;"></label>
+        
+        <button onclick="cargarEstadisticas()" style="background: #11998e; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;">🔍 Filtrar</button>
+        <button onclick="filtrarHoy()" style="background: #36A2EB; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;">📅 Solo Hoy</button>
+        <button onclick="filtrarTodo()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;">📚 Histórico Completo</button>
+    </div>
     <div class="dashboard-grid">
         <div class="card">
-            <h2>Volumen de Pacientes por Sucursal</h2>
+            <h2>Pacientes por Sucursal</h2>
             <div class="chart-container">
                 <canvas id="graficoPacientes"></canvas>
             </div>
         </div>
 
         <div class="card">
-            <h2>Promedio de Satisfacción (1 al 5)</h2>
+            <h2>Promedio de Satisfacción</h2>
             <div class="chart-container">
                 <canvas id="graficoSatisfaccion"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Tiempo Promedio de Registro (Minutos)</h2>
+            <div class="chart-container">
+                <canvas id="graficoEficiencia"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // Variables para guardar los gráficos y poder destruirlos al actualizar
+        // Variables globales para los gráficos
         let chartPacientes = null;
         let chartSatisfaccion = null;
+        let chartEficiencia = null;
 
+        // Función principal que trae los datos y dibuja
         async function cargarEstadisticas() {
             try {
-                // 1. Llamamos a nuestra nueva ruta de Python
-                const respuesta = await fetch('http://localhost:8000/estadisticas');
+                // 1. Construir la URL con filtros de fecha
+                let url = 'http://localhost:8000/estadisticas';
+                const fInicio = document.getElementById('fechaInicio').value;
+                const fFin = document.getElementById('fechaFin').value;
+                
+                if (fInicio && fFin) {
+                    url += `?fecha_inicio=${fInicio}&fecha_fin=${fFin}`;
+                }
+
+                // 2. Llamada a la API
+                const respuesta = await fetch(url);
                 const datos = await respuesta.json();
 
-                // 2. Extraemos los datos para el Gráfico 1 (Pacientes)
-                const ubicacionesTurnos = datos.turnos.map(t => t.ubicacion);
-                const totalesPacientes = datos.turnos.map(t => t.total);
-                const esperandoPacientes = datos.turnos.map(t => t.esperando);
-
-                // 3. Extraemos los datos para el Gráfico 2 (Satisfacción)
-                // ¡LA MAGIA: Le pegamos la cantidad de votos al lado del nombre!
-                const ubicacionesVotos = datos.satisfaccion.map(v => `${v.ubicacion} (${v.votos} votos)`);
-                
-                const promediosVotos = datos.satisfaccion.map(v => v.promedio);
-
-                // --- DIBUJAR GRÁFICO 1 ---
+                // --- DIBUJAR GRÁFICO 1: PACIENTES ---
                 const ctxPacientes = document.getElementById('graficoPacientes').getContext('2d');
-                if (chartPacientes) chartPacientes.destroy(); // Limpiar el anterior si existe
-                
+                if (chartPacientes) chartPacientes.destroy();
                 chartPacientes = new Chart(ctxPacientes, {
-                    type: 'bar', // Tipo barra
+                    type: 'bar',
                     data: {
-                        labels: ubicacionesTurnos,
+                        labels: datos.turnos.map(t => t.ubicacion),
                         datasets: [
-                            {
-                                label: 'Total Atendidos',
-                                data: totalesPacientes,
-                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'En Espera',
-                                data: esperandoPacientes,
-                                backgroundColor: 'rgba(255, 206, 86, 0.7)',
-                                borderColor: 'rgba(255, 206, 86, 1)',
-                                borderWidth: 1
-                            }
+                            { label: 'Atendidos', data: datos.turnos.map(t => t.total), backgroundColor: '#36A2EB' },
+                            { label: 'En Espera', data: datos.turnos.map(t => t.esperando), backgroundColor: '#FFCE56' }
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false }
                 });
 
-                // --- DIBUJAR GRÁFICO 2 ---
+                // --- DIBUJAR GRÁFICO 2: SATISFACCIÓN ---
                 const ctxSatisfaccion = document.getElementById('graficoSatisfaccion').getContext('2d');
                 if (chartSatisfaccion) chartSatisfaccion.destroy();
-                
                 chartSatisfaccion = new Chart(ctxSatisfaccion, {
-                    type: 'line', // Tipo línea con área
+                    type: 'line',
                     data: {
-                        labels: ubicacionesVotos,
+                        labels: datos.satisfaccion.map(v => `${v.ubicacion} (${v.votos}v)`),
                         datasets: [{
-                            label: 'Puntuación Promedio (Estrellas)',
-                            data: promediosVotos,
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 3,
+                            label: 'Estrellas', 
+                            data: datos.satisfaccion.map(v => v.promedio), 
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)', 
+                            borderColor: '#4BC0C0', 
+                            borderWidth: 2, 
                             fill: true,
-                            tension: 0.3 // Curva suave
+                            tension: 0.3
                         }]
                     },
                     options: { 
-                        responsive: true, maintainAspectRatio: false,
-                        scales: { y: { min: 0, max: 5 } } // El máximo siempre es 5 estrellas
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        scales: { y: { min: 0, max: 5 } } 
+                    }
+                });
+
+                // --- DIBUJAR GRÁFICO 3: EFICIENCIA (APILADO) ---
+                const ctxEficiencia = document.getElementById('graficoEficiencia').getContext('2d');
+                if (chartEficiencia) chartEficiencia.destroy();
+                chartEficiencia = new Chart(ctxEficiencia, {
+                    type: 'bar',
+                    data: {
+                        labels: datos.eficiencia.map(e => e.sucursal),
+                        datasets: [
+                            {
+                                label: 'Espera (Min)', 
+                                data: datos.eficiencia.map(e => e.espera),
+                                backgroundColor: '#FF9800', 
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Atención (Min)', 
+                                data: datos.eficiencia.map(e => e.atencion),
+                                backgroundColor: '#9c27b0', 
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: { 
+                        indexAxis: 'y', 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true }, 
+                            y: { stacked: true }
+                        },
+                        plugins: { legend: { display: true } }
                     }
                 });
 
@@ -143,7 +175,27 @@
             }
         }
 
-        // Cargar automáticamente al abrir la página
+        // --- FUNCIONES DE FILTROS RÁPIDOS ---
+
+        function filtrarHoy() {
+            // Obtenemos la fecha actual en formato local YYYY-MM-DD
+            const hoy = new Date();
+            const offset = hoy.getTimezoneOffset();
+            const fechaLocal = new Date(hoy.getTime() - (offset * 60 * 1000)).toISOString().split('T');
+            
+            document.getElementById('fechaInicio').value = fechaLocal;
+            document.getElementById('fechaFin').value = fechaLocal;
+            cargarEstadisticas();
+        }
+
+        function filtrarTodo() {
+            // Limpiamos los inputs para que la API traiga todo el histórico
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            cargarEstadisticas();
+        }
+
+        // Carga inicial al abrir la página
         window.onload = cargarEstadisticas;
     </script>
 </body>

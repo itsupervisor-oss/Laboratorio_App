@@ -19,18 +19,53 @@
             background: #ffff00; color: #001f4d; border: none; padding: 12px 24px; 
             border-radius: 8px; font-weight: bold; cursor: pointer;
         }
+
+        /* 🟢 DISEÑO DE DOS COLUMNAS */
+        .contenedor-principal {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        /* Columna Izquierda (Resumen) */
+        .columna-resumen {
+            flex: 0 0 250px; /* Ancho fijo para el conteo */
+            position: sticky;
+            top: 20px;
+        }
+
+        /* Columna Derecha (Tabla Principal) */
+        .columna-tabla {
+            flex: 1;
+        }
         
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        .card-conteo {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        .card-conteo h3 { margin-top: 0; color: #001f4d; border-bottom: 2px solid #f4f7f6; padding-bottom: 10px; }
+
+        .fila-conteo {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+        }
+
+        /* Estilos de la tabla principal */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
         thead { background: #001f4d; color: white; text-align: left; }
         th, td { padding: 15px 20px; border-bottom: 1px solid #ddd; }
         
-        /* Badges de estado */
         .badge-esperando { background: #ffcc00; color: #856600; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
         .badge-llamado { background: #17a2b8; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
         .badge-finalizado { background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
         
-        /* Botones de Acción */
-        .btn-llamar { background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        .btn-llamar { background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-atender { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-disabled { background: #ccc; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: not-allowed; font-weight: bold; }
         
@@ -53,19 +88,48 @@
             <button class="btn-refresh" onclick="cargarTurnos()">↻ Actualizar Lista</button>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Ticket</th>
-                    <th>Paciente</th>
-                    <th>Tipo</th> <th>Servicio</th>
-                    <th>Estado</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody id="tabla-turnos">
-                </tbody>
-        </table>
+        <div class="contenedor-principal">
+            
+            <div class="columna-resumen">
+                <div class="card-conteo">
+                    <h3>Estado de Sala</h3>
+                    <div class="fila-conteo">
+                        <span>Total Hoy:</span>
+                        <span id="cnt-total" style="color: #001f4d;">0</span>
+                    </div>
+                    <div class="fila-conteo">
+                        <span style="color: #856600;">🕒 Esperando:</span>
+                        <span id="cnt-espera">0</span>
+                    </div>
+                    <div class="fila-conteo">
+                        <span style="color: #17a2b8;">📞 En Atención:</span>
+                        <span id="cnt-atencion">0</span>
+                    </div>
+                    <div class="fila-conteo">
+                        <span style="color: #28a745;">✅ Finalizados:</span>
+                        <span id="cnt-finalizados">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columna-tabla">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Paciente</th>
+                            <th>Tipo</th>
+                            <th>Servicio</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-turnos">
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
     </div>
 
     <script>
@@ -85,41 +149,47 @@
             try {
                 const respuesta = await fetch(`http://localhost:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
                 const turnos = await respuesta.json();
+                
+                // 🟢 LÓGICA DE CONTEO
+                let total = turnos.length;
+                let esperando = 0;
+                let atencion = 0;
+                let finalizados = 0;
+
                 const tbody = document.getElementById('tabla-turnos');
                 tbody.innerHTML = ''; 
 
                 turnos.forEach(turno => {
+                    // Contamos los estados
+                    if (turno.estado === 'Esperando') esperando++;
+                    else if (turno.estado === 'Llamado' || turno.estado === 'Registrado') atencion++;
+                    else if (turno.estado === 'Finalizado') finalizados++;
+
                     const tr = document.createElement('tr');
-                    
                     let badgeEstado = '';
                     let botonesAccion = '';
 
-                    // LÓGICA DE ESTADOS Y BOTONES
                     if (turno.estado === 'Esperando') {
                         badgeEstado = `<span class="badge-esperando">Esperando</span>`;
                         botonesAccion = `<button class="btn-llamar" onclick="cambiarEstado(${turno.id}, 'Llamado')">Llamar</button>`;
                     } 
                     else if (turno.estado === 'Llamado') {
-                        badgeEstado = `<span class="badge-llamado">En Atención</span>`;
-                        // 🟢 AQUÍ ENTRA EL NUEVO BOTÓN: La recepcionista lo está atendiendo y presiona "Registrado"
-                        botonesAccion = `<button style="background-color: #9c27b0; color: white; padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Registrado')">Registrado</button>`;
+                        badgeEstado = `<span class="badge-llamado">Llamado</span>`;
+                        botonesAccion = `<button style="background-color: #9c27b0; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Registrado')">Registrado</button>`;
                     } 
                     else if (turno.estado === 'Registrado') {
-                        // 🟢 NUEVO ESTADO: Ya está registrado, ahora mostramos el botón para Finalizar
-                        badgeEstado = `<span style="background-color: #9c27b0; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold;">Registrado</span>`;
-                        botonesAccion = `<button class="btn-atender" onclick="cambiarEstado(${turno.id}, 'Finalizado')">Finalizar Atención</button>`;
+                        badgeEstado = `<span style="background-color: #9c27b0; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;">Registrado</span>`;
+                        botonesAccion = `<button class="btn-atender" onclick="cambiarEstado(${turno.id}, 'Finalizado')">Finalizar</button>`;
                     }
                     else {
                         badgeEstado = `<span class="badge-finalizado">Atendido</span>`;
                         botonesAccion = `<button class="btn-disabled" disabled>Completado</button>`;
                     }
 
-                    // 1. Creamos la etiqueta visual dependiendo del tipo de paciente
                     let badgeTipo = turno.tipo === 'Preferencial' ? 
-                        '<span style="background-color: #ff9800; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; box-shadow: 1px 1px 2px rgba(0,0,0,0.2);">⭐ Preferencial</span>' : 
+                        '<span style="background-color: #ff9800; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold;">⭐ Preferencial</span>' : 
                         '<span style="color: #555; font-weight: 500;">Regular</span>';
 
-                    // 2. Cada dato envuelto en sus etiquetas <td> y </td>
                     tr.innerHTML = `
                         <td><strong>#${turno.id}</strong></td>
                         <td>${turno.paciente}</td>
@@ -130,6 +200,13 @@
                     `;
                     tbody.appendChild(tr);
                 });
+
+                // 🟢 ACTUALIZAMOS LOS NÚMEROS EN LA TABLA IZQUIERDA
+                document.getElementById('cnt-total').innerText = total;
+                document.getElementById('cnt-espera').innerText = esperando;
+                document.getElementById('cnt-atencion').innerText = atencion;
+                document.getElementById('cnt-finalizados').innerText = finalizados;
+
             } catch (error) {
                 console.error("Error cargando turnos:", error);
             }
@@ -137,19 +214,15 @@
 
         async function cambiarEstado(idTurno, nuevoEstado) {
             try {
-                const respuesta = await fetch(`http://localhost:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { 
-                    method: 'PUT' 
-                });
-                
-                if(respuesta.ok) {
-                    cargarTurnos(); 
-                } else {
-                    alert("Error al actualizar el estado.");
-                }
+                const respuesta = await fetch(`http://localhost:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { method: 'PUT' });
+                if(respuesta.ok) cargarTurnos();
             } catch (error) {
-                alert("No se pudo conectar con el servidor.");
+                alert("Error de conexión.");
             }
         }
+
+        // Actualización automática cada 20 segundos
+        setInterval(cargarTurnos, 20000);
     </script>
 </body>
 </html>
