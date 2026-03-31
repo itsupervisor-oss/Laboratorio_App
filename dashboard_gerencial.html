@@ -178,13 +178,19 @@
         // --- FUNCIONES DE FILTROS RÁPIDOS ---
 
         function filtrarHoy() {
-            // Obtenemos la fecha actual en formato local YYYY-MM-DD
+            // Obtenemos la fecha actual en la zona horaria del usuario
             const hoy = new Date();
-            const offset = hoy.getTimezoneOffset();
-            const fechaLocal = new Date(hoy.getTime() - (offset * 60 * 1000)).toISOString().split('T');
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
             
-            document.getElementById('fechaInicio').value = fechaLocal;
-            document.getElementById('fechaFin').value = fechaLocal;
+            const fechaFormateada = `${yyyy}-${mm}-${dd}`;
+            
+            // Asignamos el valor corregido a los inputs
+            document.getElementById('fechaInicio').value = fechaFormateada;
+            document.getElementById('fechaFin').value = fechaFormateada;
+            
+            // Ejecutamos la consulta a la API
             cargarEstadisticas();
         }
 
