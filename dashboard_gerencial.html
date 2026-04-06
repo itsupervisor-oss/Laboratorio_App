@@ -73,6 +73,22 @@
                 <canvas id="graficoEficiencia"></canvas>
             </div>
         </div>
+        <div class="card" style="grid-column: span 2; border-top: 5px solid #e74c3c;">
+            <h2 style="color: #c0392b;">🚨 Alertas de Satisfacción Crítica</h2>
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Últimos comentarios con 1 o 2 estrellas que requieren revisión.</p>
+            <table style="width: 100%; border-collapse: collapse; background: #fff;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid #f4f4f4;">
+                        <th style="padding: 12px;">Fecha</th>
+                        <th>Sucursal</th>
+                        <th>Calificación</th>
+                        <th>Comentario del Paciente</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaAlertas">
+                    </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -169,6 +185,27 @@
                         plugins: { legend: { display: true } }
                     }
                 });
+
+                // 🟢 NUEVO: LLENAR TABLA DE ALERTAS
+                const cuerpoTabla = document.getElementById('tablaAlertas');
+                cuerpoTabla.innerHTML = ''; // Limpiar datos previos
+
+                if (datos.alertas.length === 0) {
+                    cuerpoTabla.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color: #27ae60; font-weight: bold;">✨ ¡Excelente! No hay alertas críticas en este periodo.</td></tr>';
+                } else {
+                    datos.alertas.forEach(a => {
+                        const estrellas = '⭐'.repeat(a.estrellas);
+                        const fila = `
+                            <tr style="border-bottom: 1px solid #f9f9f9;">
+                                <td style="padding: 12px; font-size: 0.85rem; color: #888;">${a.fecha}</td>
+                                <td style="font-weight: 600; color: #2c3e50;">${a.sucursal}</td>
+                                <td style="letter-spacing: 2px;">${estrellas}</td>
+                                <td style="font-style: italic; color: #e74c3c;">"${a.comentario}"</td>
+                            </tr>
+                        `;
+                        cuerpoTabla.innerHTML += fila;
+                    });
+                }
 
             } catch (error) {
                 console.error("Error al cargar las estadísticas:", error);

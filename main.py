@@ -125,12 +125,12 @@ def actualizar_estado(id_turno: int, nuevo_estado: str):
 def registrar_voto(voto: Voto):
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
-    
+    hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # 2. Actualizamos el INSERT para que guarde los 4 datos
     cursor.execute("""
-        INSERT INTO satisfaccion (ciudad, sucursal, puntaje, comentario)
-        VALUES (?, ?, ?, ?)
-    """, (voto.ciudad, voto.sucursal, voto.puntaje, voto.comentario))
+        INSERT INTO satisfaccion (ciudad, sucursal, puntaje, comentario, fecha_hora)
+        VALUES (?, ?, ?, ?, ?)
+    """, (voto.ciudad, voto.sucursal, voto.puntaje, voto.comentario, hora_actual))
     
     conexion.commit()
     conexion.close()
@@ -193,11 +193,28 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
     eficiencia_db = cursor.fetchall()
     
     lista_eficiencia = [{"sucursal": suc, "espera": round(esp, 1), "atencion": round(ate, 1)} for suc, esp, ate in eficiencia_db]
+    # ------------------------------------
+    
+    # 🟢 4. NUEVO: ALERTAS CRÍTICAS (1 y 2 estrellas)
+    # Buscamos los comentarios más recientes que necesitan atención inmediata
+    cursor.execute(f"""
+        SELECT sucursal, 
+                   CASE WHEN puntaje = 3 THEN 2 ELSE puntaje END as puntaje, 
+                   comentario, date(fecha_hora) 
+        FROM satisfaccion 
+        WHERE puntaje <= 3 {filtro_satisfaccion.replace("WHERE", "AND")}
+        ORDER BY fecha_hora DESC LIMIT 5
+    """, parametros)
+    
+    alertas_db = cursor.fetchall()
+    lista_alertas = [{"sucursal": suc, "estrellas": puntaje, "comentario": coment or "Sin comentario", "fecha": fecha} for suc, puntaje, coment, fecha in alertas_db]
 
+    # ------------------------------------
     conexion.close()
     
     return {
         "turnos": lista_turnos,
         "satisfaccion": lista_satisfaccion,
-        "eficiencia": lista_eficiencia
+        "eficiencia": lista_eficiencia,
+        "alertas": lista_alertas # 🟢 Añadimos las alertas a la respuesta
     }
