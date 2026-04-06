@@ -20,21 +20,18 @@
             border-radius: 8px; font-weight: bold; cursor: pointer;
         }
 
-        /* 🟢 DISEÑO DE DOS COLUMNAS */
         .contenedor-principal {
             display: flex;
             gap: 20px;
             align-items: flex-start;
         }
 
-        /* Columna Izquierda (Resumen) */
         .columna-resumen {
-            flex: 0 0 250px; /* Ancho fijo para el conteo */
+            flex: 0 0 250px;
             position: sticky;
             top: 20px;
         }
 
-        /* Columna Derecha (Tabla Principal) */
         .columna-tabla {
             flex: 1;
         }
@@ -56,15 +53,18 @@
             font-weight: 600;
         }
 
-        /* Estilos de la tabla principal */
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
         thead { background: #001f4d; color: white; text-align: left; }
         th, td { padding: 15px 20px; border-bottom: 1px solid #ddd; }
         
+        /* Estilos de Badges */
         .badge-esperando { background: #ffcc00; color: #856600; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
         .badge-llamado { background: #17a2b8; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
+        .badge-registrado { background: #9c27b0; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
+        .badge-derivado { background: #ff9800; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
         .badge-finalizado { background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;}
         
+        /* Botones */
         .btn-llamar { background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-atender { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-disabled { background: #ccc; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: not-allowed; font-weight: bold; }
@@ -89,7 +89,6 @@
         </div>
 
         <div class="contenedor-principal">
-            
             <div class="columna-resumen">
                 <div class="card-conteo">
                     <h3>Estado de Sala</h3>
@@ -102,8 +101,16 @@
                         <span id="cnt-espera">0</span>
                     </div>
                     <div class="fila-conteo">
-                        <span style="color: #17a2b8;">📞 En Atención:</span>
+                        <span style="color: #17a2b8;">📞 En Recepción:</span>
                         <span id="cnt-atencion">0</span>
+                    </div>
+                    <div class="fila-conteo">
+                        <span style="color: #9c27b0;">📝 Registrados:</span>
+                        <span id="cnt-registrados">0</span>
+                    </div>
+                    <div class="fila-conteo">
+                        <span style="color: #ff9800;">🧪 En Muestreo:</span>
+                        <span id="cnt-muestreo">0</span>
                     </div>
                     <div class="fila-conteo">
                         <span style="color: #28a745;">✅ Finalizados:</span>
@@ -128,7 +135,6 @@
                     </tbody>
                 </table>
             </div>
-
         </div>
     </div>
 
@@ -150,10 +156,11 @@
                 const respuesta = await fetch(`http://localhost:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
                 const turnos = await respuesta.json();
                 
-                // 🟢 LÓGICA DE CONTEO
                 let total = turnos.length;
                 let esperando = 0;
-                let atencion = 0;
+                let atencion = 0;    // Ahora solo contará los 'Llamado'
+                let registrados = 0; // 🟢 Nuevo contador para 'Registrado'
+                let muestreo = 0;
                 let finalizados = 0;
 
                 const tbody = document.getElementById('tabla-turnos');
@@ -162,27 +169,34 @@
                 turnos.forEach(turno => {
                     // Contamos los estados
                     if (turno.estado === 'Esperando') esperando++;
-                    else if (turno.estado === 'Llamado' || turno.estado === 'Registrado') atencion++;
+                    else if (turno.estado === 'Llamado') atencion++;    // 🔵 Solo llamados
+                    else if (turno.estado === 'Registrado') registrados++; // 🟢 Solo registrados
+                    else if (turno.estado === 'Derivado') muestreo++;
                     else if (turno.estado === 'Finalizado') finalizados++;
 
                     const tr = document.createElement('tr');
                     let badgeEstado = '';
                     let botonesAccion = '';
 
+                    // Lógica del flujo de 4 pasos
                     if (turno.estado === 'Esperando') {
                         badgeEstado = `<span class="badge-esperando">Esperando</span>`;
                         botonesAccion = `<button class="btn-llamar" onclick="cambiarEstado(${turno.id}, 'Llamado')">Llamar</button>`;
                     } 
                     else if (turno.estado === 'Llamado') {
                         badgeEstado = `<span class="badge-llamado">Llamado</span>`;
-                        botonesAccion = `<button style="background-color: #9c27b0; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Registrado')">Registrado</button>`;
+                        botonesAccion = `<button style="background-color: #9c27b0; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Registrado')">Registrar</button>`;
                     } 
                     else if (turno.estado === 'Registrado') {
-                        badgeEstado = `<span style="background-color: #9c27b0; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;">Registrado</span>`;
+                        badgeEstado = `<span class="badge-registrado">Registrado</span>`;
+                        botonesAccion = `<button style="background-color: #ff9800; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Derivado')">Derivar a Muestra</button>`;
+                    }
+                    else if (turno.estado === 'Derivado') {
+                        badgeEstado = `<span class="badge-derivado">En Muestreo</span>`;
                         botonesAccion = `<button class="btn-atender" onclick="cambiarEstado(${turno.id}, 'Finalizado')">Finalizar</button>`;
                     }
                     else {
-                        badgeEstado = `<span class="badge-finalizado">Atendido</span>`;
+                        badgeEstado = `<span class="badge-finalizado">Finalizado</span>`;
                         botonesAccion = `<button class="btn-disabled" disabled>Completado</button>`;
                     }
 
@@ -201,10 +215,12 @@
                     tbody.appendChild(tr);
                 });
 
-                // 🟢 ACTUALIZAMOS LOS NÚMEROS EN LA TABLA IZQUIERDA
-                document.getElementById('cnt-total').innerText = total;
+                // Actualizar contadores
+                document.getElementById('cnt-total').innerText = turnos.length;
                 document.getElementById('cnt-espera').innerText = esperando;
                 document.getElementById('cnt-atencion').innerText = atencion;
+                document.getElementById('cnt-registrados').innerText = registrados; // 🟢 Mostrar nuevo conteo
+                document.getElementById('cnt-muestreo').innerText = muestreo;
                 document.getElementById('cnt-finalizados').innerText = finalizados;
 
             } catch (error) {
@@ -214,10 +230,11 @@
 
         async function cambiarEstado(idTurno, nuevoEstado) {
             try {
+                // El backend grabará la hora correspondiente según el estado
                 const respuesta = await fetch(`http://localhost:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { method: 'PUT' });
                 if(respuesta.ok) cargarTurnos();
             } catch (error) {
-                alert("Error de conexión.");
+                alert("Error de conexión con el servidor.");
             }
         }
 

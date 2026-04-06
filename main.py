@@ -94,27 +94,31 @@ def actualizar_estado(id_turno: int, nuevo_estado: str):
     hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if nuevo_estado == "Llamado":
-        # 🟢 RESTAURADO: Guarda la hora_atencion cuando la recepcionista presiona "Llamar"
         cursor.execute("""
-            UPDATE turnos 
-            SET estado = ?, hora_atencion = ? 
-            WHERE id_turno = ?
+            UPDATE turnos SET estado = ?, hora_atencion = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
     elif nuevo_estado == "Registrado":
-        # 🟣 NUEVO: Guarda la hora_registrado cuando presiona el botón morado
         cursor.execute("""
-            UPDATE turnos 
-            SET estado = ?, hora_registrado = ? 
-            WHERE id_turno = ?
+            UPDATE turnos SET estado = ?, hora_registrado = ? WHERE id_turno = ?
+        """, (nuevo_estado, hora_actual, id_turno))
+        
+    # 🔵 NUEVO: Almacena la hora cuando se envía a Toma de Muestra
+    elif nuevo_estado == "Derivado":
+        cursor.execute("""
+            UPDATE turnos SET estado = ?, hora_derivado = ? WHERE id_turno = ?
+        """, (nuevo_estado, hora_actual, id_turno))
+
+    # 🟢 NUEVO: Almacena la hora cuando el proceso termina
+    elif nuevo_estado == "Finalizado":
+        cursor.execute("""
+            UPDATE turnos SET estado = ?, hora_finalizado = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
     else:
-        # Para los demás estados (como "Finalizado")
+        # Fallback para cualquier otro estado
         cursor.execute("""
-            UPDATE turnos 
-            SET estado = ? 
-            WHERE id_turno = ?
+            UPDATE turnos SET estado = ? WHERE id_turno = ?
         """, (nuevo_estado, id_turno))
 
     conexion.commit()
