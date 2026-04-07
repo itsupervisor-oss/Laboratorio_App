@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Plexus - Toma de Muestra</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; color: #333; }
+        
+        .header {
+            display: flex; justify-content: space-between; align-items: center; 
+            background: linear-gradient(90deg, #b91d1d 0%, #7f1d1d 100%); 
+            color: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff; }
+        
+        .btn-refresh {
+            background: #ffffff; color: #7f1d1d; border: none; padding: 12px 24px; 
+            border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+
+        .contenedor-principal { display: flex; gap: 20px; align-items: flex-start; }
+        .columna-resumen { flex: 0 0 250px; position: sticky; top: 20px; }
+        .columna-tabla { flex: 1; }
+        
+        .card-conteo {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05); border-left: 5px solid #b91d1d;
+        }
+
+        .fila-conteo {
+            display: flex; justify-content: space-between; padding: 12px 0;
+            border-bottom: 1px solid #eee; font-weight: 600;
+        }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        thead { background: #7f1d1d; color: white; text-align: left; }
+        th, td { padding: 15px 20px; border-bottom: 1px solid #ddd; }
+        
+        /* Badges de Estado */
+        .badge-derivado { background: #ff9800; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; }
+        .badge-proceso { background: #9c27b0; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; }
+
+        /* Botones de Acción */
+        .btn-tomar { background: #ff9800; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-finalizar { background: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        #pantalla-error { display: none; text-align: center; margin-top: 100px; color: #b91d1d; }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-error">
+        <h1>⚠️ ESTACIÓN NO CONFIGURADA</h1>
+        <p>Se requiere Ciudad y Sucursal en la URL.</p>
+    </div>
+
+    <div id="main-dashboard">
+        <div class="header">
+            <div>
+                <h1>Laboratorio - Estación de Muestras</h1>
+                <p id="info-sucursal">Cargando...</p>
+            </div>
+            <button class="btn-refresh" onclick="cargarPacientes()">↻ Actualizar</button>
+        </div>
+
+        <div class="contenedor-principal">
+            <div class="columna-resumen">
+                <div class="card-conteo">
+                    <h3>Panel de Control</h3>
+                    <div class="fila-conteo">
+                        <span style="color: #ff9800;">🧪 En Espera:</span>
+                        <span id="cnt-derivados">0</span>
+                    </div>
+                    <div class="fila-conteo">
+                        <span style="color: #9c27b0;">💉 En Proceso:</span>
+                        <span id="cnt-proceso">0</span>
+                    </div>
+                    <div class="fila-conteo">
+                        <span style="color: #28a745;">✅ Finalizados Hoy:</span>
+                        <span id="cnt-finalizados">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columna-tabla">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Paciente</th>
+                            <th>Servicio</th>
+                            <th>Estado Actual</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-muestras">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const parametrosURL = new URLSearchParams(window.location.search);
+        const ciudadActiva = parametrosURL.get('ciudad');
+        const sucursalActiva = parametrosURL.get('sucursal');
+
+        if (!ciudadActiva || !sucursalActiva) {
+            document.getElementById('main-dashboard').style.display = 'none';
+            document.getElementById('pantalla-error').style.display = 'block';
+        } else {
+            document.getElementById('info-sucursal').innerText = `${ciudadActiva} | ${sucursalActiva}`;
+            cargarPacientes();
+        }
+
+        async function cargarPacientes() {
+            try {
+                const respuesta = await fetch(`http://localhost:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
+                const turnos = await respuesta.json();
+                
+                let cntDerivados = 0;
+                let cntProceso = 0;
+                let cntFinalizados = 0;
+
+                const tbody = document.getElementById('tabla-muestras');
+                tbody.innerHTML = ''; 
+
+                turnos.forEach(turno => {
+                    // Solo mostramos pacientes que están en el área de laboratorio
+                    if (turno.estado === 'Derivado' || turno.estado === 'Muestra Tomada') {
+                        const tr = document.createElement('tr');
+                        let badge = '';
+                        let boton = '';
+
+                        if (turno.estado === 'Derivado') {
+                            cntDerivados++;
+                            badge = '<span class="badge-derivado">Pendiente de Muestra</span>';
+                            boton = `<button class="btn-tomar" onclick="cambiarEstado(${turno.id}, 'Muestra Tomada')">💉 Muestra Tomada</button>`;
+                        } else {
+                            cntProceso++;
+                            badge = '<span class="badge-proceso">Muestra en Tubo</span>';
+                            boton = `<button class="btn-finalizar" onclick="cambiarEstado(${turno.id}, 'Finalizado')">✅ Finalizar Paciente</button>`;
+                        }
+
+                        tr.innerHTML = `
+                            <td><strong>#${turno.id}</strong></td>
+                            <td>${turno.paciente}</td>
+                            <td>${turno.servicio}</td>
+                            <td>${badge}</td>
+                            <td>${boton}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    } else if (turno.estado === 'Finalizado') {
+                        cntFinalizados++;
+                    }
+                });
+
+                document.getElementById('cnt-derivados').innerText = cntDerivados;
+                document.getElementById('cnt-proceso').innerText = cntProceso;
+                document.getElementById('cnt-finalizados').innerText = cntFinalizados;
+
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        async function cambiarEstado(idTurno, nuevoEstado) {
+            try {
+                // Llama a la función del main.py que actualiza las columnas de tiempo
+                const respuesta = await fetch(`http://localhost:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { method: 'PUT' });
+                if(respuesta.ok) cargarPacientes();
+            } catch (error) {
+                alert("Error al conectar con el servidor.");
+            }
+        }
+
+        setInterval(cargarPacientes, 15000);
+    </script>
+</body>
+</html>

@@ -87,43 +87,52 @@ def registrar_paciente(turno: NuevoTurno):
 
 @app.put("/turnos/{id_turno}")
 def actualizar_estado(id_turno: int, nuevo_estado: str):
-    conexion = sqlite3.connect("laboratorio.db")
+    conexion = sqlite3.connect("laboratorio.db") #
     cursor = conexion.cursor()
 
-    # Capturamos la hora exacta en el momento en que se presiona cualquier botón
+    # Capturamos la hora exacta en el momento del clic
     hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if nuevo_estado == "Llamado":
+        # Recepcionista llama al paciente
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_atencion = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
     elif nuevo_estado == "Registrado":
+        # Recepcionista termina el registro/cobro
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_registrado = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
-    # 🔵 NUEVO: Almacena la hora cuando se envía a Toma de Muestra
     elif nuevo_estado == "Derivado":
+        # Recepcionista envía al paciente a toma de muestra
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_derivado = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
 
-    # 🟢 NUEVO: Almacena la hora cuando el proceso termina
+    elif nuevo_estado == "Muestra Tomada":
+        # 🧪 La tomadora de muestra confirma el procedimiento
+        cursor.execute("""
+            UPDATE turnos SET estado = ?, hora_toma_muestra = ? WHERE id_turno = ?
+        """, (nuevo_estado, hora_actual, id_turno))
+
     elif nuevo_estado == "Finalizado":
+        # 🟢 El paciente termina su visita y se retira
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_finalizado = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
     else:
-        # Fallback para cualquier otro estado
+        # Fallback para cualquier otro cambio de estado
         cursor.execute("""
             UPDATE turnos SET estado = ? WHERE id_turno = ?
         """, (nuevo_estado, id_turno))
 
-    conexion.commit()
-    conexion.close()
+    conexion.commit() #
+    conexion.close() #
     return {"mensaje": f"Estado cambiado a {nuevo_estado} exitosamente"}
+
 
 @app.post("/votar")
 def registrar_voto(voto: Voto):
