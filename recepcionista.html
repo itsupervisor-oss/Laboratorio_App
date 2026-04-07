@@ -153,7 +153,7 @@
 
         async function cargarTurnos() {
             try {
-                const respuesta = await fetch(`http://localhost:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
+                const respuesta = await fetch(`http://192.168.100.19:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
                 const turnos = await respuesta.json();
                 
                 let total = turnos.length;

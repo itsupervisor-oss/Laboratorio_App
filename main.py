@@ -3,7 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional # 🟢 Asegúrate de tener esto importado arriba
+from fastapi.staticfiles import StaticFiles
 import sqlite3
+import os # 👈 Añade esta importación arriba del todo
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="API del Laboratorio Multi-Sucursal")
 
@@ -13,7 +16,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# 🔍 PRUEBA DE DIAGNÓSTICO
+base_path = os.path.dirname(os.path.abspath(__file__))
+print(f"--- DIAGNÓSTICO DE RUTAS ---")
+print(f"📍 Carpeta del servidor: {base_path}")
+print(f"📂 Archivos encontrados: {os.listdir(base_path)}")
+print(f"---------------------------")
 
+app.mount("/estatico", StaticFiles(directory=base_path, html=True), name="static")
 # 1. NUEVOS MODELOS: Ahora exigimos la ciudad y sucursal en ambos procesos
 class NuevoTurno(BaseModel):
     ciudad: str

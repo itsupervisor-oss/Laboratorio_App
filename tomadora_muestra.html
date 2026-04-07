@@ -117,7 +117,7 @@
 
         async function cargarPacientes() {
             try {
-                const respuesta = await fetch(`http://localhost:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
+                const respuesta = await fetch(`http://192.168.100.19:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
                 const turnos = await respuesta.json();
                 
                 let cntDerivados = 0;
@@ -169,7 +169,7 @@
         async function cambiarEstado(idTurno, nuevoEstado) {
             try {
                 // Llama a la función del main.py que actualiza las columnas de tiempo
-                const respuesta = await fetch(`http://localhost:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { method: 'PUT' });
+                const respuesta = await fetch(`http://192.168.100.19:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { method: 'PUT' });
                 if(respuesta.ok) cargarPacientes();
             } catch (error) {
                 alert("Error al conectar con el servidor.");
