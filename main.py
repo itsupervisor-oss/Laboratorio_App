@@ -6,7 +6,6 @@ from typing import Optional # 🟢 Asegúrate de tener esto importado arriba
 from fastapi.staticfiles import StaticFiles
 import sqlite3
 import os # 👈 Añade esta importación arriba del todo
-from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="API del Laboratorio Multi-Sucursal")
 
@@ -16,14 +15,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# 🔍 PRUEBA DE DIAGNÓSTICO
+
+# 🛠️ CONFIGURACIÓN DE RUTAS
 base_path = os.path.dirname(os.path.abspath(__file__))
-print(f"--- DIAGNÓSTICO DE RUTAS ---")
-print(f"📍 Carpeta del servidor: {base_path}")
-print(f"📂 Archivos encontrados: {os.listdir(base_path)}")
-print(f"---------------------------")
+
+# 🔍 PRUEBA DE DIAGNÓSTICO
+#print(f"--- DIAGNÓSTICO DE RUTAS ---")
+#print(f"📍 Carpeta del servidor: {base_path}")
+#print(f"📂 Archivos encontrados: {os.listdir(base_path)}")
+#print(f"---------------------------")
 
 app.mount("/estatico", StaticFiles(directory=base_path, html=True), name="static")
+
 # 1. NUEVOS MODELOS: Ahora exigimos la ciudad y sucursal en ambos procesos
 class NuevoTurno(BaseModel):
     ciudad: str
@@ -166,33 +169,37 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
 
-    # 🟢 PREPARAMOS LOS FILTROS DE FECHA
-    # Si el usuario mandó fechas, armamos el trozo de código SQL para filtrar
+    # 1. INICIALIZACIÓN DE SEGURIDAD (Evita el NameError)
+    lista_turnos = []
+    lista_satisfaccion = []
+    lista_eficiencia = []
+    lista_alertas = []
+    
     filtro_turnos = ""
     filtro_satisfaccion = ""
     filtro_eficiencia = ""
     parametros = []
 
+    # 2. CONFIGURAR FILTROS DE FECHA
     if fecha_inicio and fecha_fin:
-        # date() extrae solo el 'YYYY-MM-DD' de nuestra columna para comparar exacto
         filtro_turnos = "WHERE date(hora_registro) BETWEEN ? AND ?"
         filtro_satisfaccion = "WHERE date(fecha_hora) BETWEEN ? AND ?"
         filtro_eficiencia = "AND date(hora_registro) BETWEEN ? AND ?"
         parametros = [fecha_inicio, fecha_fin]
 
-    # 1. Datos de Turnos (Pacientes)
+    # 3. DATOS DE TURNOS (Pacientes hoy)
     cursor.execute(f"""
         SELECT sucursal, COUNT(*) as total,
-               SUM(CASE WHEN estado = 'Esperando' THEN 1 ELSE 0 END) as esperando
+               SUM(CASE WHEN estado = 'Esperando' THEN 1 ELSE 0 END) as esperando,
+               SUM(CASE WHEN estado = 'Derivado' THEN 1 ELSE 0 END) as en_muestreo
         FROM turnos 
         {filtro_turnos}
         GROUP BY sucursal
     """, parametros)
     turnos_db = cursor.fetchall()
-    
-    lista_turnos = [{"ubicacion": suc, "total": tot, "esperando": esp} for suc, tot, esp in turnos_db]
+    lista_turnos = [{"ubicacion": suc, "total": tot, "esperando": esp, "en_muestreo": mues} for suc, tot, esp, mues in turnos_db]
 
-    # 2. Datos de Satisfacción
+    # 4. DATOS DE SATISFACCIÓN (Promedio de estrellas)
     cursor.execute(f"""
         SELECT sucursal, COUNT(*) as votos, AVG(puntaje) as promedio
         FROM satisfaccion 
@@ -200,44 +207,43 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
         GROUP BY sucursal
     """, parametros)
     satisfaccion_db = cursor.fetchall()
-    
     lista_satisfaccion = [{"ubicacion": suc, "votos": vot, "promedio": round(prom, 1) if prom else 0} for suc, vot, prom in satisfaccion_db]
 
-    # 3. Datos de Eficiencia (Espera y Atención)
+    # 5. DATOS DE EFICIENCIA (Tiempos de espera y atención)
     cursor.execute(f"""
         SELECT sucursal, 
                COALESCE(AVG((julianday(hora_atencion) - julianday(hora_registro)) * 1440), 0) as prom_espera,
-               COALESCE(AVG((julianday(hora_registrado) - julianday(hora_atencion)) * 1440), 0) as prom_atencion
+               COALESCE(AVG((julianday(hora_registrado) - julianday(hora_atencion)) * 1440), 0) as prom_atencion,
+               COALESCE(AVG((julianday(hora_toma_muestra) - julianday(hora_derivado)) * 1440), 0) as prom_muestreo
         FROM turnos 
-        WHERE hora_registro IS NOT NULL AND hora_atencion IS NOT NULL AND hora_registrado IS NOT NULL
+        WHERE hora_registro IS NOT NULL
         {filtro_eficiencia}
         GROUP BY sucursal
     """, parametros)
     eficiencia_db = cursor.fetchall()
-    
-    lista_eficiencia = [{"sucursal": suc, "espera": round(esp, 1), "atencion": round(ate, 1)} for suc, esp, ate in eficiencia_db]
-    # ------------------------------------
-    
-    # 🟢 4. NUEVO: ALERTAS CRÍTICAS (1 y 2 estrellas)
-    # Buscamos los comentarios más recientes que necesitan atención inmediata
+    lista_eficiencia = [
+        {"sucursal": suc, "espera": round(esp, 1), "atencion": round(ate, 1), "muestreo": round(mue, 1)} 
+        for suc, esp, ate, mue in eficiencia_db
+    ]
+
+    # 6. ALERTAS CRÍTICAS (Satisfacción baja)
     cursor.execute(f"""
         SELECT sucursal, 
-                   CASE WHEN puntaje = 3 THEN 2 ELSE puntaje END as puntaje, 
-                   comentario, date(fecha_hora) 
+               puntaje, 
+               comentario, date(fecha_hora) 
         FROM satisfaccion 
         WHERE puntaje <= 3 {filtro_satisfaccion.replace("WHERE", "AND")}
         ORDER BY fecha_hora DESC LIMIT 5
     """, parametros)
-    
     alertas_db = cursor.fetchall()
     lista_alertas = [{"sucursal": suc, "estrellas": puntaje, "comentario": coment or "Sin comentario", "fecha": fecha} for suc, puntaje, coment, fecha in alertas_db]
 
-    # ------------------------------------
     conexion.close()
     
+    # 7. RETORNO DE RESULTADOS
     return {
         "turnos": lista_turnos,
         "satisfaccion": lista_satisfaccion,
         "eficiencia": lista_eficiencia,
-        "alertas": lista_alertas # 🟢 Añadimos las alertas a la respuesta
+        "alertas": lista_alertas
     }

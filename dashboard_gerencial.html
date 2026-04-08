@@ -6,7 +6,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Montserrat', sans-serif; background-color: #eef2f5; margin: 0; padding: 20px; color: #333; }
+        body { font-family: 'Montserrat', sans-serif; background-color: #0675AE; margin: 0; padding: 20px; color: #333; }
         
         .header {
             display: flex; justify-content: space-between; align-items: center; 
@@ -100,8 +100,8 @@
         // Función principal que trae los datos y dibuja
         async function cargarEstadisticas() {
             try {
-                // 1. Construir la URL con filtros de fecha
-                let url = 'http://localhost:8000/estadisticas';
+                // 1. Construir la URL con filtros de fecha (Usamos tu IP)
+                let url = 'http://192.168.100.19:8000/estadisticas';
                 const fInicio = document.getElementById('fechaInicio').value;
                 const fFin = document.getElementById('fechaFin').value;
                 
@@ -121,8 +121,9 @@
                     data: {
                         labels: datos.turnos.map(t => t.ubicacion),
                         datasets: [
-                            { label: 'Atendidos', data: datos.turnos.map(t => t.total), backgroundColor: '#36A2EB' },
-                            { label: 'En Espera', data: datos.turnos.map(t => t.esperando), backgroundColor: '#FFCE56' }
+                            { label: 'Total Hoy', data: datos.turnos.map(t => t.total), backgroundColor: '#36A2EB' },
+                            { label: 'En Recepción', data: datos.turnos.map(t => t.esperando), backgroundColor: '#FFCE56' },
+                            { label: 'En Muestreo', data: datos.turnos.map(t => t.en_muestreo), backgroundColor: '#ff9800' }
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false }
@@ -161,15 +162,21 @@
                         labels: datos.eficiencia.map(e => e.sucursal),
                         datasets: [
                             {
-                                label: 'Espera (Min)', 
+                                label: 'Espera Recepción', 
                                 data: datos.eficiencia.map(e => e.espera),
                                 backgroundColor: '#FF9800', 
                                 borderRadius: 4
                             },
                             {
-                                label: 'Atención (Min)', 
+                                label: 'Tiempo Registro', 
                                 data: datos.eficiencia.map(e => e.atencion),
                                 backgroundColor: '#9c27b0', 
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Espera Muestra (🧪)', 
+                                data: datos.eficiencia.map(e => e.muestreo),
+                                backgroundColor: '#e74c3c', 
                                 borderRadius: 4
                             }
                         ]
@@ -186,15 +193,19 @@
                     }
                 });
 
-                // 🟢 NUEVO: LLENAR TABLA DE ALERTAS
+                // 🟢 TABLA DE ALERTAS
                 const cuerpoTabla = document.getElementById('tablaAlertas');
-                cuerpoTabla.innerHTML = ''; // Limpiar datos previos
+                cuerpoTabla.innerHTML = ''; 
 
                 if (datos.alertas.length === 0) {
                     cuerpoTabla.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color: #27ae60; font-weight: bold;">✨ ¡Excelente! No hay alertas críticas en este periodo.</td></tr>';
                 } else {
                     datos.alertas.forEach(a => {
-                        const estrellas = '⭐'.repeat(a.estrellas);
+                        let cantidadEstrellas = a.estrellas;
+                        if (cantidadEstrellas === 3){
+                            cantidadEstrellas = 2;
+                        }   
+                        const estrellas = '⭐'.repeat(cantidadEstrellas);
                         const fila = `
                             <tr style="border-bottom: 1px solid #f9f9f9;">
                                 <td style="padding: 12px; font-size: 0.85rem; color: #888;">${a.fecha}</td>
@@ -213,9 +224,7 @@
         }
 
         // --- FUNCIONES DE FILTROS RÁPIDOS ---
-
         function filtrarHoy() {
-            // Obtenemos la fecha actual en la zona horaria del usuario
             const hoy = new Date();
             const yyyy = hoy.getFullYear();
             const mm = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -223,16 +232,13 @@
             
             const fechaFormateada = `${yyyy}-${mm}-${dd}`;
             
-            // Asignamos el valor corregido a los inputs
             document.getElementById('fechaInicio').value = fechaFormateada;
             document.getElementById('fechaFin').value = fechaFormateada;
             
-            // Ejecutamos la consulta a la API
             cargarEstadisticas();
         }
 
         function filtrarTodo() {
-            // Limpiamos los inputs para que la API traiga todo el histórico
             document.getElementById('fechaInicio').value = '';
             document.getElementById('fechaFin').value = '';
             cargarEstadisticas();
