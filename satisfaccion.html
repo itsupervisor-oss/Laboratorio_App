@@ -7,9 +7,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            margin: 0; padding: 0; display: flex; justify-content: center; align-items: center;
-            height: 100vh; background: linear-gradient(180deg, #001f4d 0%, #0675AE 100%);
-            font-family: 'Montserrat', sans-serif; overflow: hidden; color: white; text-align: center;
+            display: flex;
+            flex-direction: column; /* 👈 Obliga a que los elementos se apilen de arriba hacia abajo */
+            align-items: center; /* Centra todo horizontalmente */
+            min-height: 100vh; /* Ocupa al menos toda la altura de la pantalla */
+            margin: 0;
+            background: linear-gradient(180deg, #001f4d 0%, #0675AE 100%);
         }
 
         .main-container { width: 100%; max-width: 900px; padding: 20px; }
@@ -51,7 +54,13 @@
         .btn-enviar { background: #28a745; color: white; border: none; padding: 18px 40px; border-radius: 12px; font-size: 1.3rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .btn-omitir { background: transparent; color: white; border: 1px solid white; padding: 18px 40px; border-radius: 12px; font-size: 1.3rem; cursor: pointer; margin-left: 10px; }
 
-        .plexus-logo { color: white; font-size: 1.8rem; font-weight: 700; position: absolute; bottom: 30px; letter-spacing: 3px; opacity: 0.6; }
+        .plexus-logo { 
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: 50px; /* 👈 CÁMBIALO AQUÍ: En vez de 'auto', le damos 50px fijos de separación */
+            padding-bottom: 30px; 
+        }
     </style>
 </head>
 <body>
@@ -95,7 +104,9 @@
         </div>
     </div>
 
-    <div class="plexus-logo">PLEXUS</div>
+    <div class="plexus-logo">
+        <img src="LogoPlexus.png" alt="Plexus Medicina Diagnóstica" style="height: 80px; width: auto; object-fit: contain;">
+    </div>
 
     <script>
         const parametrosURL = new URLSearchParams(window.location.search);
