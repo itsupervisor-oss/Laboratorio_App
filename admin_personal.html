@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administración de Personal - Laboratorio</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        
+        .form-group { display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-end; }
+        .form-group div { flex: 1; display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        button.btn-add { background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #007bff; color: white; }
+        
+        .badge-activo { background-color: #17a2b8; color: white; padding: 5px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; }
+        .badge-inactivo { background-color: #6c757d; color: white; padding: 5px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; }
+        
+        .btn-toggle { border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-desactivar { background-color: #dc3545; color: white; }
+        .btn-activar { background-color: #28a745; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="dashboard_gerencial.html" style="text-decoration: none; background-color: #007bff; color: white; padding: 8px 15px; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">
+            ⬅ Volver al Dashboard
+        </a>
+    </div>
+    <h1>⚙️ Gestión de Tomadores de Muestra</h1>
+    
+    <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <h3 style="margin-top: 0;">➕ Nuevo Empleado</h3>
+        <div class="form-group">
+            <div>
+                <label>Nombre Completo:</label>
+                <input type="text" id="nuevoNombre" placeholder="Ej. Juan Pérez">
+            </div>
+            <div>
+                <label>Ciudad:</label>
+                <select id="nuevaCiudad" onchange="cargarSucursalesDependientes()">
+                    <option value="">Cargando ciudades...</option>
+                </select>
+            </div>
+            <div>
+                <label>Sucursal:</label>
+                <select id="nuevaSucursal">
+                    <option value="">Seleccione ciudad primero</option>
+                </select>
+            </div>
+            <button class="btn-add" onclick="agregarEmpleado()">Registrar</button>
+        </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Ciudad</th>
+                <th>Sucursal</th>
+                <th>Estado</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tablaEmpleados">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    // 👇 ASEGÚRATE DE QUE ESTA IP SEA LA CORRECTA (La misma de siempre)
+    const API_URL = "http://192.168.100.19:8000";
+
+    // 1. Cargar la lista de empleados
+    async function cargarEmpleados() {
+        try {
+            const response = await fetch(`${API_URL}/admin/empleados`);
+            const data = await response.json();
+            const tbody = document.getElementById('tablaEmpleados');
+            tbody.innerHTML = '';
+
+            data.empleados.forEach(emp => {
+                const tr = document.createElement('tr');
+                let badge = emp.estado === 'Activo' 
+                    ? `<span class="badge-activo">Activo</span>` 
+                    : `<span class="badge-inactivo">Inactivo</span>`;
+                let boton = emp.estado === 'Activo'
+                    ? `<button class="btn-toggle btn-desactivar" onclick="cambiarEstado(${emp.id}, 'Inactivo')">Desactivar</button>`
+                    : `<button class="btn-toggle btn-activar" onclick="cambiarEstado(${emp.id}, 'Activo')">Activar</button>`;
+
+                tr.innerHTML = `
+                    <td>${emp.id}</td>
+                    <td><strong>${emp.nombre}</strong></td>
+                    <td>${emp.ciudad}</td>
+                    <td>${emp.sucursal}</td>
+                    <td>${badge}</td>
+                    <td>${boton}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Error cargando empleados:", error);
+        }
+    }
+
+    // 2. Agregar un nuevo empleado
+    async function agregarEmpleado() {
+        const nombre = document.getElementById('nuevoNombre').value;
+        const ciudad = document.getElementById('nuevaCiudad').value;
+        const sucursal = document.getElementById('nuevaSucursal').value;
+
+        if (!nombre || !ciudad || !sucursal) {
+            alert("⚠️ Por favor completa el Nombre, la Ciudad y la Sucursal.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/admin/empleados`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, ciudad, sucursal })
+            });
+
+            if (response.ok) {
+                // Limpiar campos después de guardar
+                document.getElementById('nuevoNombre').value = ''; 
+                document.getElementById('nuevaCiudad').value = '';
+                document.getElementById('nuevaSucursal').innerHTML = '<option value="">Seleccione ciudad primero</option>';
+                cargarEmpleados(); // Recargar la tabla
+            } else {
+                alert("Error al guardar el empleado");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+
+    // 3. Activar o Desactivar un empleado
+    async function cambiarEstado(id, nuevoEstado) {
+        if(!confirm(`¿Seguro que deseas cambiar el estado a ${nuevoEstado}?`)) return;
+        try {
+            const response = await fetch(`${API_URL}/admin/empleados/${id}/estado?estado=${nuevoEstado}`, {
+                method: 'PUT'
+            });
+            if (response.ok) {
+                cargarEmpleados();
+            } else {
+                alert("Error al actualizar el estado");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+
+    // 4. Cargar las Ciudades desde la base de datos
+    async function cargarCiudades() {
+        try {
+            const response = await fetch(`${API_URL}/ciudades`);
+            const data = await response.json();
+            const comboCiudad = document.getElementById('nuevaCiudad');
+            
+            comboCiudad.innerHTML = '<option value="">-- Elija Ciudad --</option>';
+            data.ciudades.forEach(ciudad => {
+                const option = document.createElement('option');
+                option.value = ciudad;
+                option.textContent = ciudad;
+                comboCiudad.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error cargando ciudades:", error);
+        }
+    }
+
+    // 5. Cargar las Sucursales dependientes de la Ciudad elegida
+    async function cargarSucursalesDependientes() {
+        const comboCiudad = document.getElementById('nuevaCiudad');
+        const comboSucursal = document.getElementById('nuevaSucursal');
+        const ciudadSeleccionada = comboCiudad.value;
+
+        if (!ciudadSeleccionada) {
+            comboSucursal.innerHTML = '<option value="">Seleccione ciudad primero</option>';
+            return;
+        }
+
+        comboSucursal.innerHTML = '<option value="">Cargando sucursales...</option>';
+
+        try {
+            const response = await fetch(`${API_URL}/sucursales/${ciudadSeleccionada}`);
+            const data = await response.json();
+            
+            comboSucursal.innerHTML = '<option value="">-- Elija Sucursal --</option>';
+            data.sucursales.forEach(sucursal => {
+                const option = document.createElement('option');
+                option.value = sucursal;
+                option.textContent = sucursal;
+                comboSucursal.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error cargando sucursales:", error);
+        }
+    }
+
+    // 🔥 ¡MOTOR DE ARRANQUE DE LA PÁGINA! 🔥
+    cargarEmpleados();
+    cargarCiudades(); 
+</script>
+
+</body>
+</html>

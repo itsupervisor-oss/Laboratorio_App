@@ -41,6 +41,82 @@ class Voto(BaseModel):
     puntaje: int
     comentario: Optional[str] = "" # 🟢 NUEVO CAMPO OPCIONAL
 
+
+# 1. Creamos un "molde" para los datos del nuevo empleado
+class NuevoEmpleado(BaseModel):
+    nombre: str
+    ciudad: str
+    sucursal: str
+# 2. Ruta para ver a TODOS los empleados (activos e inactivos)
+@app.get("/admin/empleados")
+def obtener_todos_empleados():
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id, nombre, ciudad, sucursal, estado FROM tomadores")
+    datos = cursor.fetchall()
+    conexion.close()
+    
+    lista = [{"id": i, "nombre": n, "ciudad": c, "sucursal": s, "estado": e} for i, n, c, s, e in datos]
+
+    return {"empleados": lista}
+
+# 3. Ruta para agregar un empleado nuevo
+@app.post("/admin/empleados")
+def agregar_empleado(empleado: NuevoEmpleado):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    cursor.execute("""
+        INSERT INTO tomadores (nombre, ciudad, sucursal, estado) 
+        VALUES (?, ?, ?, 'Activo')
+    """, (empleado.nombre, empleado.ciudad, empleado.sucursal))
+    conexion.commit()
+    conexion.close()
+    return {"mensaje": "Empleado registrado exitosamente"}
+
+# 4. Ruta para activar o desactivar un empleado
+@app.put("/admin/empleados/{id_empleado}/estado")
+def cambiar_estado_empleado(id_empleado: int, estado: str):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE tomadores SET estado = ? WHERE id = ?", (estado, id_empleado))
+    conexion.commit()
+    conexion.close()
+    return {"mensaje": f"Estado cambiado a {estado}"}
+
+
+# ---------------------------------------------------------
+# RUTAS PARA LOS COMBOS DEPENDIENTES (CIUDAD Y SUCURSAL)
+# ---------------------------------------------------------
+
+# 1. Obtener lista de ciudades únicas
+@app.get("/ciudades")
+def obtener_ciudades():
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    # Usamos DISTINCT para que no nos repita "LaPaz" tres veces
+    cursor.execute("SELECT DISTINCT ciudad FROM sucursales")
+    datos = cursor.fetchall()
+    conexion.close()
+    
+    # Extraemos el texto de la tupla (usamos d para evitar el error de hace rato 😉)
+    lista_ciudades = [c for (c,) in datos]
+    return {"ciudades": lista_ciudades}
+
+# 2. Obtener sucursales según la ciudad seleccionada
+@app.get("/sucursales/{ciudad}")
+def obtener_sucursales(ciudad: str):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    # Buscamos solo las sucursales que pertenecen a la ciudad que nos mandan
+    cursor.execute("SELECT nombre_sucursal FROM sucursales WHERE ciudad = ?", (ciudad,))
+    datos = cursor.fetchall()
+    conexion.close()
+    
+    lista_sucursales = [s for (s,) in datos]
+    return {"sucursales": lista_sucursales}
+#--------------------------------------------------------
+#--------------------------------------------------------
+
 # --- RUTAS WEB ---
 
 @app.get("/turnos")
