@@ -98,52 +98,51 @@ def registrar_paciente(turno: NuevoTurno):
     return {"mensaje": "¡Paciente registrado exitosamente!", "ticket": nuevo_id}
 
 
+from typing import Optional # 👈 Asegúrate de que esta línea esté al inicio de tu archivo
+
 @app.put("/turnos/{id_turno}")
-def actualizar_estado(id_turno: int, nuevo_estado: str):
-    conexion = sqlite3.connect("laboratorio.db") #
+def actualizar_estado(id_turno: int, nuevo_estado: str, tomador: Optional[str] = None): # 👈 Añadimos tomador aquí
+    conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
 
     # Capturamos la hora exacta en el momento del clic
     hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if nuevo_estado == "Llamado":
-        # Recepcionista llama al paciente
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_atencion = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
     elif nuevo_estado == "Registrado":
-        # Recepcionista termina el registro/cobro
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_registrado = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
     elif nuevo_estado == "Derivado":
-        # Recepcionista envía al paciente a toma de muestra
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_derivado = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
 
     elif nuevo_estado == "Muestra Tomada":
-        # 🧪 La tomadora de muestra confirma el procedimiento
+        # 🧪 Aquí es donde guardamos quién hizo la extracción
         cursor.execute("""
-            UPDATE turnos SET estado = ?, hora_toma_muestra = ? WHERE id_turno = ?
-        """, (nuevo_estado, hora_actual, id_turno))
+            UPDATE turnos 
+            SET estado = ?, hora_toma_muestra = ?, tomador = ? 
+            WHERE id_turno = ?
+        """, (nuevo_estado, hora_actual, tomador, id_turno)) # 👈 Agregamos tomador al UPDATE
 
     elif nuevo_estado == "Finalizado":
-        # 🟢 El paciente termina su visita y se retira
         cursor.execute("""
             UPDATE turnos SET estado = ?, hora_finalizado = ? WHERE id_turno = ?
         """, (nuevo_estado, hora_actual, id_turno))
         
     else:
-        # Fallback para cualquier otro cambio de estado
         cursor.execute("""
             UPDATE turnos SET estado = ? WHERE id_turno = ?
         """, (nuevo_estado, id_turno))
 
-    conexion.commit() #
-    conexion.close() #
+    conexion.commit()
+    conexion.close()
     return {"mensaje": f"Estado cambiado a {nuevo_estado} exitosamente"}
 
 
@@ -182,6 +181,24 @@ def registrar_voto(voto: Voto):
     conexion.close()
     return {"mensaje": "Voto registrado correctamente"}
 
+@app.get("/tomadores")
+def obtener_tomadores(ciudad: str, sucursal: str):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+
+    # Buscamos solo los empleados activos de esa sucursal específica
+    cursor.execute("""
+        SELECT nombre 
+        FROM tomadores 
+        WHERE ciudad = ? AND sucursal = ? AND estado = 'Activo'
+    """, (ciudad, sucursal))
+    
+    # Empaquetamos los nombres en una lista
+    nombres_db = cursor.fetchall()
+    lista_tomadores = [fila for fila in nombres_db]
+
+    conexion.close()
+    return {"tomadores": lista_tomadores}
 
 # 5. GET: Dashboard Gerencial (Estadísticas agrupadas con filtro de fecha)
 @app.get("/estadisticas")

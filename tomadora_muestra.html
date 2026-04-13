@@ -62,7 +62,15 @@
                 <h1>Laboratorio - Estación de Muestras</h1>
                 <p id="info-sucursal">Cargando...</p>
             </div>
-            <button class="btn-refresh" onclick="cargarPacientes()">↻ Actualizar</button>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label for="comboTomador" style="font-weight: bold; color: #ccc; font-size: 0.9rem;">👩‍⚕️ Personal de Toma de Muestra:</label>
+                
+                <select id="comboTomador" style="padding: 8px 12px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.9rem; min-width: 180px;">
+                    <option value="">Cargando personal...</option>
+                </select>
+                
+                <button class="btn-refresh" onclick="cargarPacientes()">↻ Actualizar</button>
+            </div>
         </div>
 
         <div class="contenedor-principal">
@@ -179,14 +187,65 @@
         }
 
         // Función original que ya tenías para finalizar
-        async function cambiarEstado(idTurno, nuevoEstado) {
+        async function cambiarEstado(id_turno, nuevo_estado) {
+            let url = `http://192.168.100.19:8000/turnos/${id_turno}?nuevo_estado=${nuevo_estado}`;
+
+            // Si el estado es "Muestra Tomada", obligamos a que haya un nombre seleccionado
+            if (nuevo_estado === 'Muestra Tomada') {
+                const nombreTomador = document.getElementById('comboTomador').value;
+                
+                if (!nombreTomador) {
+                    alert("⚠️ ALERTA: Por favor, seleccione su nombre en el desplegable superior antes de finalizar la extracción.");
+                    // Reactivamos el botón por si se bloqueó (si usaste el this.disabled=true de la otra vez)
+                    cargarPacientes(); 
+                    return; // Detenemos la función aquí mismo
+                }
+                
+                // Si hay nombre, lo agregamos a la petición
+                url += `&tomador=${encodeURIComponent(nombreTomador)}`;
+            }
+
             try {
-                const respuesta = await fetch(`http://192.168.100.19:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { method: 'PUT' });
-                if(respuesta.ok) cargarPacientes();
+                const response = await fetch(url, { method: 'PUT' });
+
+                if (response.ok) {
+                    cargarPacientes(); // Recarga la tabla de pacientes
+                } else {
+                    console.error("Error al cambiar de estado");
+                    alert("Hubo un error de comunicación con el servidor.");
+                }
             } catch (error) {
-                alert("Error al conectar con el servidor.");
+                console.error("Error:", error);
             }
         }
+
+        // Cargar los nombres de los tomadores en el combo
+        async function cargarComboTomadores() {
+            // Leemos la ciudad y sucursal directo de la URL (ej. ?ciudad=LaPaz&sucursal=SanJorge)
+            const params = new URLSearchParams(window.location.search);
+            const ciudad = params.get('ciudad') || 'LaPaz'; // Ponemos un por defecto por seguridad
+            const sucursal = params.get('sucursal') || 'SanJorge';
+
+            try {
+                const response = await fetch(`http://192.168.100.19:8000/tomadores?ciudad=${ciudad}&sucursal=${sucursal}`);
+                const data = await response.json();
+                
+                const combo = document.getElementById('comboTomador');
+                combo.innerHTML = '<option value="">-- Seleccione su nombre --</option>';
+                
+                data.tomadores.forEach(nombre => {
+                    const option = document.createElement('option');
+                    option.value = nombre;
+                    option.textContent = nombre;
+                    combo.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error al cargar personal:", error);
+            }
+        }
+
+        // Llamamos a la función apenas arranca la página
+        cargarComboTomadores();
 
         setInterval(cargarPacientes, 15000);
     </script>
