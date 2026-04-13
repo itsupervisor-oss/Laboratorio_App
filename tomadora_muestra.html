@@ -128,20 +128,22 @@
                 tbody.innerHTML = ''; 
 
                 turnos.forEach(turno => {
-                    // Solo mostramos pacientes que están en el área de laboratorio
-                    if (turno.estado === 'Derivado' || turno.estado === 'Muestra Tomada') {
+                    // Ahora filtramos por los nuevos estados
+                    if (turno.estado === 'Derivado' || turno.estado === 'En Box') {
                         const tr = document.createElement('tr');
                         let badge = '';
                         let boton = '';
 
                         if (turno.estado === 'Derivado') {
                             cntDerivados++;
-                            badge = '<span class="badge-derivado">Pendiente de Muestra</span>';
-                            boton = `<button class="btn-tomar" onclick="cambiarEstado(${turno.id}, 'Muestra Tomada')">💉 Muestra Tomada</button>`;
-                        } else {
+                            badge = '<span class="badge-derivado">En Sala de Espera</span>';
+                            // 🟢 NUEVO BOTÓN: Llama a la nueva función
+                            boton = `<button class="btn-tomar" style="background-color: #17a2b8;" onclick="llamarPaciente(${turno.id})">📢 Llamar Paciente</button>`;
+                        } else if (turno.estado === 'En Box') {
                             cntProceso++;
-                            badge = '<span class="badge-proceso">Muestra en Tubo</span>';
-                            boton = `<button class="btn-finalizar" onclick="cambiarEstado(${turno.id}, 'Finalizado')">✅ Finalizar Paciente</button>`;
+                            badge = '<span class="badge-proceso">Extracción en curso</span>';
+                            // 🟢 BOTÓN FINAL: Termina el proceso
+                            boton = `<button class="btn-finalizar" onclick="cambiarEstado(${turno.id}, 'Muestra Tomada')">💉 Muestra Tomada</button>`;
                         }
 
                         tr.innerHTML = `
@@ -152,7 +154,7 @@
                             <td>${boton}</td>
                         `;
                         tbody.appendChild(tr);
-                    } else if (turno.estado === 'Finalizado') {
+                    } else if (turno.estado === 'Muestra Tomada' || turno.estado === 'Finalizado') {
                         cntFinalizados++;
                     }
                 });
@@ -166,9 +168,19 @@
             }
         }
 
+        // 🟢 NUEVA FUNCIÓN: Se comunica con la ruta que creamos en main.py
+        async function llamarPaciente(idTurno) {
+            try {
+                const respuesta = await fetch(`http://192.168.100.19:8000/iniciar_muestra/${idTurno}`, { method: 'PUT' });
+                if(respuesta.ok) cargarPacientes();
+            } catch (error) {
+                alert("Error al conectar con el servidor.");
+            }
+        }
+
+        // Función original que ya tenías para finalizar
         async function cambiarEstado(idTurno, nuevoEstado) {
             try {
-                // Llama a la función del main.py que actualiza las columnas de tiempo
                 const respuesta = await fetch(`http://192.168.100.19:8000/turnos/${idTurno}?nuevo_estado=${nuevoEstado}`, { method: 'PUT' });
                 if(respuesta.ok) cargarPacientes();
             } catch (error) {

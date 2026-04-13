@@ -178,7 +178,7 @@
                     let badgeEstado = '';
                     let botonesAccion = '';
 
-                    // Lógica del flujo de 4 pasos
+                    // Lógica del flujo con botón de finalizar siempre disponible
                     if (turno.estado === 'Esperando') {
                         badgeEstado = `<span class="badge-esperando">Esperando</span>`;
                         botonesAccion = `<button class="btn-llamar" onclick="cambiarEstado(${turno.id}, 'Llamado')">Llamar</button>`;
@@ -192,8 +192,14 @@
                         botonesAccion = `<button style="background-color: #ff9800; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Derivado')">Derivar a Muestra</button>`;
                     }
                     else if (turno.estado === 'Derivado') {
-                        badgeEstado = `<span class="badge-derivado">En Muestreo</span>`;
-                        botonesAccion = `<button class="btn-atender" onclick="cambiarEstado(${turno.id}, 'Finalizado')">Finalizar</button>`;
+                        badgeEstado = `<span class="badge-derivado">En Espera Lab</span>`;
+                        // La recepcionista mantiene el botón para forzar la finalización
+                        botonesAccion = `<button class="btn-atender" style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Finalizado')">Finalizar</button>`;
+                    }
+                    else if (turno.estado === 'En Box') {
+                        badgeEstado = `<span style="background-color: #17a2b8; color: white; padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 0.8rem;">En Box (Extracción)</span>`;
+                        // La recepcionista mantiene el botón para forzar la finalización
+                        botonesAccion = `<button class="btn-atender" style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="cambiarEstado(${turno.id}, 'Finalizado')">Finalizar</button>`;
                     }
                     else {
                         badgeEstado = `<span class="badge-finalizado">Finalizado</span>`;

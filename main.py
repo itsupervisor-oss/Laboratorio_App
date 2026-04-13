@@ -147,6 +147,26 @@ def actualizar_estado(id_turno: int, nuevo_estado: str):
     return {"mensaje": f"Estado cambiado a {nuevo_estado} exitosamente"}
 
 
+@app.put("/iniciar_muestra/{id_turno}")
+def iniciar_muestra(id_turno: int):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+
+    hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Actualizamos el estado y guardamos la hora exacta en la que entra al box
+    cursor.execute("""
+        UPDATE turnos 
+        SET estado = 'En Box', 
+            hora_inicio_muestra = ?
+        WHERE id_turno = ?
+    """, (hora_actual, id_turno,))
+
+    conexion.commit()
+    conexion.close()
+    
+    return {"mensaje": "El paciente ha ingresado a la toma de muestra"}
+
 @app.post("/votar")
 def registrar_voto(voto: Voto):
     conexion = sqlite3.connect("laboratorio.db")
@@ -214,7 +234,8 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
         SELECT sucursal, 
                COALESCE(AVG((julianday(hora_atencion) - julianday(hora_registro)) * 1440), 0) as prom_espera,
                COALESCE(AVG((julianday(hora_registrado) - julianday(hora_atencion)) * 1440), 0) as prom_atencion,
-               COALESCE(AVG((julianday(hora_toma_muestra) - julianday(hora_derivado)) * 1440), 0) as prom_muestreo
+               COALESCE(AVG((julianday(hora_inicio_muestra) - julianday(hora_derivado)) * 1440), 0) as prom_espera_lab,    
+               COALESCE(AVG((julianday(hora_toma_muestra) - julianday(hora_inicio_muestra)) * 1440), 0) as prom_muestreo
         FROM turnos 
         WHERE hora_registro IS NOT NULL
         {filtro_eficiencia}
@@ -222,8 +243,12 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
     """, parametros)
     eficiencia_db = cursor.fetchall()
     lista_eficiencia = [
-        {"sucursal": suc, "espera": round(esp, 1), "atencion": round(ate, 1), "muestreo": round(mue, 1)} 
-        for suc, esp, ate, mue in eficiencia_db
+        {"sucursal": suc, 
+         "espera": round(esp, 1), 
+         "atencion": round(ate, 1), 
+         "espera_lab": round(esp_lab, 1),       # 👈 Nuevo dato
+         "extraccion": round(extraccion, 1)}    # 👈 Nuevo dato
+        for suc, esp, ate, esp_lab, extraccion in eficiencia_db
     ]
 
     # 6. ALERTAS CRÍTICAS (Satisfacción baja)

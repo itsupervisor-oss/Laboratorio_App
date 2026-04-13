@@ -173,10 +173,17 @@
                                 backgroundColor: '#9c27b0', 
                                 borderRadius: 4
                             },
+                            // 👇 AQUÍ ESTÁ EL CAMBIO: Reemplazamos el viejo 'muestreo' por estos 2 bloques 👇
                             {
-                                label: 'Espera Muestra (🧪)', 
-                                data: datos.eficiencia.map(e => e.muestreo),
-                                backgroundColor: '#e74c3c', 
+                                label: 'Espera Afuera Lab', 
+                                data: datos.eficiencia.map(e => e.espera_lab),
+                                backgroundColor: '#e74c3c', // Rojo (ya que es tiempo de espera inactivo)
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Tiempo Extracción (💉)', 
+                                data: datos.eficiencia.map(e => e.extraccion),
+                                backgroundColor: '#3498db', // Azul (para diferenciar el trabajo real de la espera)
                                 borderRadius: 4
                             }
                         ]
