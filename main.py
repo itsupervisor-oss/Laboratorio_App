@@ -83,6 +83,18 @@ def cambiar_estado_empleado(id_empleado: int, estado: str):
     conexion.close()
     return {"mensaje": f"Estado cambiado a {estado}"}
 
+@app.put("/admin/empleados/{id_empleado}/reasignar")
+def reasignar_empleado(id_empleado: int, datos: dict):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    # Actualizamos ciudad y sucursal al mismo tiempo
+    cursor.execute(
+        "UPDATE tomadores SET ciudad = ?, sucursal = ? WHERE id = ?",
+        (datos['ciudad'], datos['sucursal'], id_empleado)
+    )
+    conexion.commit()
+    conexion.close()
+    return {"mensaje": "Empleado reasignado con éxito"}
 
 # ---------------------------------------------------------
 # RUTAS PARA LOS COMBOS DEPENDIENTES (CIUDAD Y SUCURSAL)
@@ -108,12 +120,54 @@ def obtener_sucursales(ciudad: str):
     conexion = sqlite3.connect("laboratorio.db")
     cursor = conexion.cursor()
     # Buscamos solo las sucursales que pertenecen a la ciudad que nos mandan
-    cursor.execute("SELECT nombre_sucursal FROM sucursales WHERE ciudad = ?", (ciudad,))
+    cursor.execute("SELECT nombre_sucursal FROM sucursales WHERE ciudad = ? AND estado = 'Activo'", (ciudad,))
     datos = cursor.fetchall()
     conexion.close()
     
     lista_sucursales = [s for (s,) in datos]
     return {"sucursales": lista_sucursales}
+
+
+# --- RUTAS PARA GESTIONAR EL DIRECTORIO DE SUCURSALES ---
+
+# 1. Obtener TODAS las sucursales (para la tabla de administración)
+@app.get("/admin/sucursales")
+def obtener_todas_sucursales():
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id, ciudad, nombre_sucursal, estado FROM sucursales")
+    datos = cursor.fetchall()
+    conexion.close()
+    # Usamos el desempacado seguro para evitar errores de formato
+    lista = [{"id": i, "ciudad": c, "nombre": n, "estado": e} for i, c, n, e in datos]
+    return {"sucursales": lista}
+
+# 2. Crear una nueva sucursal (POST)
+@app.post("/admin/sucursales")
+def crear_sucursal(datos: dict):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO sucursales (ciudad, nombre_sucursal, estado) VALUES (?, ?, 'Activo')",
+            (datos['ciudad'], datos['nombre'])
+        )
+        conexion.commit()
+        return {"mensaje": "Sucursal creada con éxito"}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conexion.close()
+
+# 3. Cambiar estado de una sucursal (PUT)
+@app.put("/admin/sucursales/{id}/estado")
+def cambiar_estado_sucursal(id: int, estado: str):
+    conexion = sqlite3.connect("laboratorio.db")
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE sucursales SET estado = ? WHERE id = ?", (estado, id))
+    conexion.commit()
+    conexion.close()
+    return {"mensaje": f"Sucursal actualizada a {estado}"}
 #--------------------------------------------------------
 #--------------------------------------------------------
 

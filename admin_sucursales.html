@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Plexus BI - Admin Sucursales</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        .form-group { display: flex; gap: 15px; background: #eef2f3; padding: 20px; border-radius: 10px; margin-bottom: 25px; align-items: flex-end; }
+        .form-group div { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .btn-add { background-color: #27ae60; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; }
+        .badge-activo { background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+        .badge-inactivo { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+        .btn-toggle { border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+        .btn-desactivar { background: #f39c12; color: white; }
+        .btn-activar { background: #2980b9; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="dashboard_gerencial.html" style="text-decoration: none; background-color: #007bff; color: white; padding: 8px 15px; border-radius: 5px; font-weight: bold;">⬅ Volver</a>
+    </div>
+
+    <h1>🏢 Gestión de Sucursales</h1>
+
+    <div class="form-group">
+        <div>
+            <label>Ciudad:</label>
+            <input type="text" id="nuevaCiudad" placeholder="Ej. Tarija">
+        </div>
+        <div>
+            <label>Nombre de Sucursal:</label>
+            <input type="text" id="nuevoNombre" placeholder="Ej. Central">
+        </div>
+        <button class="btn-add" onclick="agregarSucursal()">Registrar</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Ciudad</th>
+                <th>Sucursal</th>
+                <th>Estado</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tablaSucursales">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    const API_URL = "http://192.168.100.19:8000";
+
+    async function cargarSucursales() {
+        try {
+            const response = await fetch(`${API_URL}/admin/sucursales`);
+            const data = await response.json();
+            const tbody = document.getElementById('tablaSucursales');
+            tbody.innerHTML = '';
+
+            data.sucursales.forEach(suc => {
+                const tr = document.createElement('tr');
+                let badge = suc.estado === 'Activo' 
+                    ? `<span class="badge-activo">Activo</span>` 
+                    : `<span class="badge-inactivo">Inactivo</span>`;
+                let boton = suc.estado === 'Activo'
+                    ? `<button class="btn-toggle btn-desactivar" onclick="cambiarEstado(${suc.id}, 'Inactivo')">Desactivar</button>`
+                    : `<button class="btn-toggle btn-activar" onclick="cambiarEstado(${suc.id}, 'Activo')">Activar</button>`;
+
+                tr.innerHTML = `
+                    <td>${suc.id}</td>
+                    <td>${suc.ciudad}</td>
+                    <td><strong>${suc.nombre}</strong></td>
+                    <td>${badge}</td>
+                    <td>${boton}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+
+    async function agregarSucursal() {
+        const ciudad = document.getElementById('nuevaCiudad').value;
+        const nombre = document.getElementById('nuevoNombre').value;
+
+        if (!ciudad || !nombre) {
+            alert("Completa ambos campos");
+            return;
+        }
+
+        const response = await fetch(`${API_URL}/admin/sucursales`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ciudad, nombre })
+        });
+
+        if (response.ok) {
+            document.getElementById('nuevaCiudad').value = '';
+            document.getElementById('nuevoNombre').value = '';
+            cargarSucursales();
+        }
+    }
+
+    async function cambiarEstado(id, nuevoEstado) {
+        if(!confirm(`¿Cambiar estado a ${nuevoEstado}?`)) return;
+        const response = await fetch(`${API_URL}/admin/sucursales/${id}/estado?estado=${nuevoEstado}`, {
+            method: 'PUT'
+        });
+        if (response.ok) cargarSucursales();
+    }
+
+    // Arrancar
+    cargarSucursales();
+</script>
+
+</body>
+</html>

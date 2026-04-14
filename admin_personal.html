@@ -95,13 +95,20 @@
                     ? `<button class="btn-toggle btn-desactivar" onclick="cambiarEstado(${emp.id}, 'Inactivo')">Desactivar</button>`
                     : `<button class="btn-toggle btn-activar" onclick="cambiarEstado(${emp.id}, 'Activo')">Activar</button>`;
 
+                // Dentro del data.empleados.forEach en cargarEmpleados():
                 tr.innerHTML = `
                     <td>${emp.id}</td>
                     <td><strong>${emp.nombre}</strong></td>
                     <td>${emp.ciudad}</td>
                     <td>${emp.sucursal}</td>
                     <td>${badge}</td>
-                    <td>${boton}</td>
+                    <td>
+                        ${boton}
+                        <button class="btn-toggle" style="background: #8e44ad; color: white;" 
+                                onclick="prepararReasignacion(${emp.id}, '${emp.nombre}')">
+                            🔄 Reasignar
+                        </button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -204,6 +211,34 @@
             });
         } catch (error) {
             console.error("Error cargando sucursales:", error);
+        }
+    }
+
+    // 6. Reasignación de sucursal
+    async function prepararReasignacion(id, nombre) {
+        const nuevaCiudad = document.getElementById('nuevaCiudad').value;
+        const nuevaSucursal = document.getElementById('nuevaSucursal').value;
+
+        if (!nuevaCiudad || !nuevaSucursal) {
+            alert(`Para reasignar a ${nombre}, primero selecciona la nueva Ciudad y Sucursal en los cuadros de arriba.`);
+            return;
+        }
+
+        if (confirm(`¿Estás seguro de mover a ${nombre} a la sucursal ${nuevaSucursal} (${nuevaCiudad})?`)) {
+            try {
+                const response = await fetch(`${API_URL}/admin/empleados/${id}/reasignar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ciudad: nuevaCiudad, sucursal: nuevaSucursal })
+                });
+
+                if (response.ok) {
+                    alert("Empleado reasignado correctamente");
+                    cargarEmpleados();
+                }
+            } catch (error) {
+                console.error("Error al reasignar:", error);
+            }
         }
     }
 
