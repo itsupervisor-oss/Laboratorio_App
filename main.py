@@ -341,17 +341,20 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
     lista_satisfaccion = []
     lista_eficiencia = []
     lista_alertas = []
+    lista_rendimiento_tomadores = [] # 👈 Inicializamos el nuevo ranking
     
     filtro_turnos = ""
     filtro_satisfaccion = ""
     filtro_eficiencia = ""
     parametros = []
+    filtro_muuestras = "" # 👈 Nuevo filtro
 
     # 2. CONFIGURAR FILTROS DE FECHA
     if fecha_inicio and fecha_fin:
         filtro_turnos = "WHERE date(hora_registro) BETWEEN ? AND ?"
         filtro_satisfaccion = "WHERE date(fecha_hora) BETWEEN ? AND ?"
         filtro_eficiencia = "AND date(hora_registro) BETWEEN ? AND ?"
+        filtro_muuestras = "WHERE date(hora_toma_muestra) BETWEEN ? AND ?" # 👈 Para la tabla de muestras
         parametros = [fecha_inicio, fecha_fin]
 
     # 3. DATOS DE TURNOS (Pacientes hoy)
@@ -408,14 +411,40 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
         ORDER BY fecha_hora DESC LIMIT 5
     """, parametros)
     alertas_db = cursor.fetchall()
-    lista_alertas = [{"sucursal": suc, "estrellas": puntaje, "comentario": coment or "Sin comentario", "fecha": fecha} for suc, puntaje, coment, fecha in alertas_db]
+    lista_alertas = [
+        {"sucursal": suc, "estrellas": puntaje, "comentario": coment or "Sin comentario", "fecha": fecha} 
+        for suc, puntaje, coment, fecha in alertas_db
+    ]
+
+    # 6.5 RANKING DE RAPIDEZ DE TOMADORES (Consulta Limpia)
+    cursor.execute(f"""
+        SELECT 
+            tomador, 
+            sucursal,
+            COUNT(id_turno) as total_muestras,
+            ROUND(AVG((julianday(hora_toma_muestra) - julianday(hora_inicio_muestra)) * 1440), 1) as promedio_min
+        FROM turnos
+        WHERE tomador IS NOT NULL 
+          AND hora_inicio_muestra IS NOT NULL 
+          AND hora_toma_muestra IS NOT NULL
+          {filtro_turnos.replace("WHERE", "AND")} 
+        GROUP BY tomador, sucursal
+        ORDER BY promedio_min ASC
+    """, parametros)
+    rendimiento_db = cursor.fetchall()
+    
+    lista_rendimiento_tomadores = [
+        {"nombre": n, "sucursal": s, "cantidad": c, "minutos": m or 0} 
+        for n, s, c, m in rendimiento_db
+    ]
 
     conexion.close()
     
-    # 7. RETORNO DE RESULTADOS
+    # 7. RETORNO DE RESULTADOS (El gran paquete de datos)
     return {
         "turnos": lista_turnos,
         "satisfaccion": lista_satisfaccion,
         "eficiencia": lista_eficiencia,
-        "alertas": lista_alertas
+        "alertas": lista_alertas,
+        "rendimiento_tomadores": lista_rendimiento_tomadores
     }
