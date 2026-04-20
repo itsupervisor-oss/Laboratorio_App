@@ -157,6 +157,38 @@
                 </table>
             </div>
         </div>
+        <div id="widget-abandono-prepago" class="card" style="grid-column: span 1; border-top: 5px solid #e67e22;">
+            <h2 style="color: #d35400;">💸 Abandono Pre-Pago</h2>
+            <div class="chart-container">
+                <canvas id="graficoAbandono"></canvas>
+            </div>
+            <p style="font-size: 0.75rem; color: #7f8c8d; padding: 10px; text-align: center;">
+                Tickets sin atención tras <b>30 min</b> (Pref.) o <b>90 min</b> (Normal).
+            </p>
+        </div>
+        <div id="widget-productividad-boxes" class="card" style="grid-column: span 2; border-bottom: 5px solid #27ae60;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 15px;">
+                <h2 style="color: #27ae60;">🚀 Eficiencia de Boxes por Sucursal</h2>
+                <span style="font-size: 0.8rem; background: #e8f6ef; color: #27ae60; padding: 5px 10px; border-radius: 15px; font-weight: bold;">
+                    Meta: < 8 min/paciente
+                </span>
+            </div>
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="graficoProductividad"></canvas>
+            </div>
+            <p style="font-size: 0.75rem; color: #7f8c8d; text-align: center; margin-top: 10px;">
+                Eje X: Cantidad de Pacientes | Eje Y: Tiempo Promedio en Box (min)
+            </p>
+        </div>
+        <div id="widget-horas-pico" class="card" style="grid-column: span 2; border-left: 5px solid #8e44ad;">
+            <h2 style="color: #8e44ad;">📈 Curva de Afluencia (Horas Pico)</h2>
+            <div class="chart-container" style="height: 250px;">
+                <canvas id="graficoHorasPico"></canvas>
+            </div>
+            <p style="font-size: 0.75rem; color: #7f8c8d; text-align: center; margin-top: 10px;">
+                Distribución total de pacientes registrados por hora del día.
+            </p>
+        </div>
     </div>
         <div id="modalConfig">
             <div class="modal-content">
@@ -169,6 +201,9 @@
                     <label class="config-item"><input type="checkbox" id="chk-tiempopromedio" checked onchange="actualizarVista('widget-tiempopromedio', this.checked)"> Tiempo Registro</label>
                     <label class="config-item"><input type="checkbox" id="chk-alertas" checked onchange="actualizarVista('widget-alertas', this.checked)"> Alertas Críticas</label>
                     <label class="config-item"><input type="checkbox" id="chk-rapidez" checked onchange="actualizarVista('widget-rapidez', this.checked)"> Ranking Rapidez</label>
+                    <label class="config-item"><input type="checkbox" id="chk-abandono" checked onchange="actualizarVista('widget-abandono-prepago', this.checked)"> Abandono</label>
+                    <label class="config-item"><input type="checkbox" id="chk-prod-boxes" checked onchange="actualizarVista('widget-productividad-boxes', this.checked)"> Producción</label>
+                    <label class="config-item"><input type="checkbox" id="chk-horas-pico" checked onchange="actualizarVista('widget-horas-pico', this.checked)"> Horas pico</label>
                 </div>
                 
                 <button onclick="cerrarConfiguracion()" style="width: 100%; background: #11998e; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">Guardar cambios</button>
@@ -180,6 +215,9 @@
         let chartPacientes = null;
         let chartSatisfaccion = null;
         let chartEficiencia = null;
+        let chartAbandono = null;
+        let chartProductividad = null;
+        let chartHorasPico = null;
 
         // Función principal que trae los datos y dibuja
         async function cargarEstadisticas() {
@@ -193,9 +231,12 @@
                     url += `?fecha_inicio=${fInicio}&fecha_fin=${fFin}`;
                 }
 
-                // 2. Llamada a la API
-                const respuesta = await fetch(url);
+                // 2. Llamada a la API (Con destructor de caché)
+                const separador = url.includes('?') ? '&' : '?';
+                const respuesta = await fetch(url + separador + "nocache=" + new Date().getTime());
                 const datos = await respuesta.json();
+
+                // console.log("💥 LA VERDAD ABSOLUTA:", datos);
 
                 // --- DIBUJAR GRÁFICO 1: PACIENTES ---
                 const ctxPacientes = document.getElementById('graficoPacientes').getContext('2d');
@@ -346,6 +387,125 @@
                     }
                 }
 
+                // --- DIBUJAR GRÁFICO: ABANDONO PRE-PAGO ---
+                const ctxAbandono = document.getElementById('graficoAbandono').getContext('2d');
+                if (chartAbandono) chartAbandono.destroy(); // Limpiar si ya existe
+
+                chartAbandono = new Chart(ctxAbandono, {
+                    type: 'bar', // Puedes usar 'pie' o 'doughnut' si prefieres
+                    data: {
+                        labels: datos.abandono_prepago.map(a => a.sucursal),
+                        datasets: [{
+                            label: '% de Abandono Estimado',
+                            data: datos.abandono_prepago.map(a => a.porcentaje),
+                            backgroundColor: 'rgba(230, 126, 34, 0.7)', // Naranja profesional
+                            borderColor: '#d35400',
+                            borderWidth: 1,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100, // Porque es porcentaje
+                                title: { display: true, text: 'Porcentaje (%)' }
+                            }
+                        }
+                    }
+                });
+
+                // --- DIBUJAR GRÁFICO: EFICIENCIA DE BOXES (SCATTER) ---
+                const ctxProd = document.getElementById('graficoProductividad').getContext('2d');
+                if (chartProductividad) chartProductividad.destroy();
+
+                console.log("PAQUETE COMPLETO DE DATOS:", datos);
+                // Formateamos los datos para el gráfico de dispersión
+                const datasetProductividad = datos.productividad.map(suc => ({
+                    x: suc.total,        // Eje X: Cantidad de pacientes
+                    y: suc.promedio_min, // Eje Y: Tiempo promedio en minutos
+                    label: suc.sucursal  // Etiqueta personalizada
+                }));
+
+                chartProductividad = new Chart(ctxProd, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Sucursales',
+                            data: datasetProductividad,
+                            backgroundColor: '#27ae60',
+                            pointRadius: 8,
+                            pointHoverRadius: 12
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    // Para que al pasar el mouse diga el nombre de la sucursal
+                                    label: function(context) {
+                                        const punto = context.raw;
+                                        return `${punto.label}: ${punto.x} pac. | ${punto.y} min/prom`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Volumen (Total Pacientes)' },
+                                beginAtZero: true
+                            },
+                            y: {
+                                title: { display: true, text: 'Tiempo Promedio (Minutos)' },
+                                beginAtZero: true,
+                                // Dibujamos una línea de advertencia en los 10 minutos
+                                grid: {
+                                    color: (context) => context.tick.value === 10 ? 'rgba(231, 76, 60, 0.5)' : 'rgba(0,0,0,0.1)',
+                                    lineWidth: (context) => context.tick.value === 10 ? 3 : 1
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // --- DIBUJAR GRÁFICO: HORAS PICO ---
+                const ctxHoras = document.getElementById('graficoHorasPico').getContext('2d');
+                if (chartHorasPico) chartHorasPico.destroy();
+
+                chartHorasPico = new Chart(ctxHoras, {
+                    type: 'line',
+                    data: {
+                        // AQUÍ ESTABA EL ERROR: Tiene que ser exactamente "horas_pico"
+                        labels: datos.horas_pico.map(h => h.hora), 
+                        datasets: [{
+                            label: 'Pacientes Registrados',
+                            // AQUÍ TAMBIÉN: Exactamente "horas_pico"
+                            data: datos.horas_pico.map(h => h.volumen), 
+                            borderColor: '#8e44ad',
+                            backgroundColor: 'rgba(142, 68, 173, 0.2)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#8e44ad',
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Volumen' } },
+                            x: { title: { display: true, text: 'Hora del Día' } }
+                        }
+                    }
+                });                
             } catch (error) {
                 console.error("Error al cargar las estadísticas:", error);
             }

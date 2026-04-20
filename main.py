@@ -438,13 +438,94 @@ def obtener_estadisticas(fecha_inicio: Optional[str] = None, fecha_fin: Optional
         for n, s, c, m in rendimiento_db
     ]
 
+    # --- LÓGICA DE ABANDONO PRE-PAGO ---
+# Definimos los minutos límite directamente aquí para que sea claro
+    MIN_PREFERENCIAL = 30 
+    MIN_NORMAL = 90
+
+    # Consulta para detectar pacientes que sacaron ticket pero no llegaron a ventanilla
+    cursor.execute(f"""
+        SELECT 
+            sucursal,
+            COUNT(id_turno) as total_tickets,
+            SUM(CASE 
+                WHEN hora_atencion IS NULL AND (
+                    -- Caso A: Paciente Preferencial que esperó más de {MIN_PREFERENCIAL} min
+                    (tipo_paciente IN ('Preferencial', 'Tercera Edad', 'Embarazada') 
+                    AND (julianday('now', 'localtime') - julianday(hora_registro)) * 1440 > {MIN_PREFERENCIAL})
+                    
+                    OR 
+                    
+                    -- Caso B: Paciente Normal que esperó más de {MIN_NORMAL} min
+                    (tipo_paciente NOT IN ('Preferencial', 'Tercera Edad', 'Embarazada') 
+                    AND (julianday('now', 'localtime') - julianday(hora_registro)) * 1440 > {MIN_NORMAL})
+                ) THEN 1 ELSE 0 END) as abandonos_estimados
+        FROM turnos
+        {filtro_turnos}
+        GROUP BY sucursal
+    """, parametros)
+
+    res_abandono = cursor.fetchall()
+    lista_abandono = [
+        {
+            "sucursal": s, 
+            "total": t, 
+            "abandonos": a, 
+            "porcentaje": round((a / t * 100), 1) if t > 0 else 0
+        } for s, t, a in res_abandono
+    ]
+
+    # --- MÉTRICA: PRODUCTIVIDAD DE BOXES ---
+    cursor.execute(f"""
+        SELECT 
+            sucursal,
+            COUNT(id_turno) as total_muestras,
+            AVG((julianday(hora_finalizado) - julianday(hora_atencion)) * 1440) as tiempo_promedio_box
+        FROM turnos
+        WHERE hora_atencion IS NOT NULL AND hora_finalizado IS NOT NULL
+        {filtro_turnos.replace("WHERE", "AND")}
+        GROUP BY sucursal
+    """, parametros)
+    datos_box = cursor.fetchall()
+
+    lista_productividad = [
+        {
+            "sucursal": s, 
+            "total": t, 
+            "promedio_min": round(p, 1) if p else 0
+        } for s, t, p in datos_box
+    ]
+
+    # --- MÉTRICA: HORAS PICO (Afluencia de pacientes) ---
+    cursor.execute(f"""
+        SELECT 
+            strftime('%H', hora_registro) as hora,
+            COUNT(id_turno) as volumen
+        FROM turnos
+        WHERE hora_registro IS NOT NULL
+        {filtro_turnos.replace("WHERE", "AND")}
+        GROUP BY hora
+        ORDER BY hora ASC
+    """, parametros)
+    datos_horas = cursor.fetchall()
+
+    # Formateamos para que se lea bonito (ej: "07:00")
+    lista_horas_pico = [
+        {"hora": f"{h}:00", "volumen": v} 
+        for h, v in datos_horas if h is not None
+    ]
+
     conexion.close()
-    
+    # print("🚀 ESTOY LLEGANDO AL RETURN Y ESTAS SON LAS HORAS:", lista_horas_pico)
     # 7. RETORNO DE RESULTADOS (El gran paquete de datos)
     return {
         "turnos": lista_turnos,
         "satisfaccion": lista_satisfaccion,
         "eficiencia": lista_eficiencia,
         "alertas": lista_alertas,
-        "rendimiento_tomadores": lista_rendimiento_tomadores
+        "rendimiento_tomadores": lista_rendimiento_tomadores,
+        "abandono_prepago": lista_abandono,  # <--- Recién agregada
+        "productividad": lista_productividad,  # <--- Recién agregada
+        "horas_pico": lista_horas_pico  # <--- Recién agregada
     }
+
