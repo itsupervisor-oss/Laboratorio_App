@@ -50,7 +50,8 @@ class NuevoEmpleado(BaseModel):
 # 2. Ruta para ver a TODOS los empleados (activos e inactivos)
 @app.get("/admin/empleados")
 def obtener_todos_empleados():
-    conexion = sqlite3.connect("laboratorio.db")
+    conexion = sqlite3.connect("laboratorio.db", timeout=15.0, check_same_thread=False)
+    conexion.execute("PRAGMA journal_mode=WAL;")
     cursor = conexion.cursor()
     cursor.execute("SELECT id, nombre, ciudad, sucursal, estado FROM tomadores")
     datos = cursor.fetchall()

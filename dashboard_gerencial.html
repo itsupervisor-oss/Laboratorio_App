@@ -166,7 +166,7 @@
                 Tickets sin atención tras <b>30 min</b> (Pref.) o <b>90 min</b> (Normal).
             </p>
         </div>
-        <div id="widget-productividad-boxes" class="card" style="grid-column: span 2; border-bottom: 5px solid #27ae60;">
+        <!-- <div id="widget-productividad-boxes" class="card" style="grid-column: span 2; border-bottom: 5px solid #27ae60;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 15px;">
                 <h2 style="color: #27ae60;">🚀 Eficiencia de Boxes por Sucursal</h2>
                 <span style="font-size: 0.8rem; background: #e8f6ef; color: #27ae60; padding: 5px 10px; border-radius: 15px; font-weight: bold;">
@@ -179,7 +179,7 @@
             <p style="font-size: 0.75rem; color: #7f8c8d; text-align: center; margin-top: 10px;">
                 Eje X: Cantidad de Pacientes | Eje Y: Tiempo Promedio en Box (min)
             </p>
-        </div>
+        </div> -->
         <div id="widget-horas-pico" class="card" style="grid-column: span 2; border-left: 5px solid #8e44ad;">
             <h2 style="color: #8e44ad;">📈 Curva de Afluencia (Horas Pico)</h2>
             <div class="chart-container" style="height: 250px;">
@@ -244,7 +244,7 @@
                 chartPacientes = new Chart(ctxPacientes, {
                     type: 'bar',
                     data: {
-                        labels: datos.turnos.map(t => t.ubicacion),
+                        labels: datos.turnos.map(t => t.sucursal || t.ubicacion),
                         datasets: [
                             { label: 'Total Hoy', data: datos.turnos.map(t => t.total), backgroundColor: '#36A2EB' },
                             { label: 'En Recepción', data: datos.turnos.map(t => t.esperando), backgroundColor: '#FFCE56' },
@@ -278,51 +278,67 @@
                     }
                 });
 
-                // --- DIBUJAR GRÁFICO 3: EFICIENCIA (APILADO) ---
-                const ctxEficiencia = document.getElementById('graficoEficiencia').getContext('2d');
-                if (chartEficiencia) chartEficiencia.destroy();
+                // --- DIBUJAR GRÁFICO: EFICIENCIA Y TIEMPOS (BARRAS APILADAS) ---
+                // (Asegúrate de que el ID del canvas coincida con tu HTML)
+                const ctxEficiencia = document.getElementById('graficoEficiencia').getContext('2d'); 
+
+                if (typeof chartEficiencia !== 'undefined' && chartEficiencia !== null) {
+                    chartEficiencia.destroy();
+                }
+
+                // Magia: Usamos Math.max(0, valor) para convertir cualquier error negativo (como el -31.2) en un 0.
                 chartEficiencia = new Chart(ctxEficiencia, {
                     type: 'bar',
                     data: {
-                        labels: datos.eficiencia.map(e => e.sucursal),
+                        labels: datos.eficiencia.map(t => t.sucursal || t.ubicacion),
                         datasets: [
                             {
-                                label: 'Espera Recepción', 
-                                data: datos.eficiencia.map(e => e.espera),
-                                backgroundColor: '#FF9800', 
-                                borderRadius: 4
+                                label: 'Espera Recepción',
+                                data: datos.eficiencia.map(s => Math.max(0, s.espera)),
+                                backgroundColor: '#f1c40f' // Amarillo
                             },
                             {
-                                label: 'Tiempo Registro', 
-                                data: datos.eficiencia.map(e => e.atencion),
-                                backgroundColor: '#9c27b0', 
-                                borderRadius: 4
+                                label: 'Atención Recepción',
+                                data: datos.eficiencia.map(s => Math.max(0, s.atencion)),
+                                backgroundColor: '#3498db' // Azul
                             },
                             {
-                                label: 'Espera Afuera Lab', 
-                                data: datos.eficiencia.map(e => e.espera_lab),
-                                backgroundColor: '#e74c3c', 
-                                borderRadius: 4
+                                label: 'Espera Box',
+                                data: datos.eficiencia.map(s => Math.max(0, s.espera_lab)),
+                                backgroundColor: '#e67e22' // Naranja
                             },
                             {
-                                label: 'Tiempo Extracción (💉)', 
-                                data: datos.eficiencia.map(e => e.extraccion),
-                                backgroundColor: '#3498db', 
-                                borderRadius: 4
+                                label: 'Extracción (Box)',
+                                data: datos.eficiencia.map(s => Math.max(0, s.extraccion)),
+                                backgroundColor: '#2ecc71' // Verde
                             }
                         ]
                     },
-                    options: { 
-                        indexAxis: 'y', 
-                        responsive: true, 
+                    options: {
+                        responsive: true,
                         maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.raw} min`;
+                                    }
+                                }
+                            }
+                        },
                         scales: {
-                            x: { stacked: true }, 
-                            y: { stacked: true }
+                            x: {
+                                stacked: true, // Esto apila las barras
+                                title: { display: true, text: 'Sucursales' }
+                            },
+                            y: {
+                                stacked: true, // Esto apila las barras en el eje Y
+                                beginAtZero: true,
+                                title: { display: true, text: 'Minutos Totales' }
+                            }
                         }
                     }
                 });
-
                 // --- 🟢 TABLA DE ALERTAS ---
                 const cuerpoTabla = document.getElementById('tablaAlertas');
                 cuerpoTabla.innerHTML = ''; 
@@ -417,61 +433,57 @@
                     }
                 });
 
-                // --- DIBUJAR GRÁFICO: EFICIENCIA DE BOXES (SCATTER) ---
-                const ctxProd = document.getElementById('graficoProductividad').getContext('2d');
-                if (chartProductividad) chartProductividad.destroy();
+                // // --- DIBUJAR GRÁFICO: EFICIENCIA DE BOXES (SCATTER) ---
+                // const ctxProd = document.getElementById('graficoProductividad').getContext('2d');
+                // if (chartProductividad) chartProductividad.destroy();
 
-                console.log("PAQUETE COMPLETO DE DATOS:", datos);
-                // Formateamos los datos para el gráfico de dispersión
-                const datasetProductividad = datos.productividad.map(suc => ({
-                    x: suc.total,        // Eje X: Cantidad de pacientes
-                    y: suc.promedio_min, // Eje Y: Tiempo promedio en minutos
-                    label: suc.sucursal  // Etiqueta personalizada
-                }));
+                // console.log("PAQUETE COMPLETO DE DATOS:", datos);
+                //     // Formateamos los datos para el gráfico de dispersión
+                //     const datasetProductividad = datos.productividad.map(suc => ({
+                //         x: suc.total,        // Eje X: Cantidad de pacientes
+                //         y: suc.promedio_min, // Eje Y: Tiempo promedio en minutos
+                //         label: suc.sucursal  // Etiqueta personalizada
+                //     }));
 
-                chartProductividad = new Chart(ctxProd, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [{
-                            label: 'Sucursales',
-                            data: datasetProductividad,
-                            backgroundColor: '#27ae60',
-                            pointRadius: 8,
-                            pointHoverRadius: 12
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    // Para que al pasar el mouse diga el nombre de la sucursal
-                                    label: function(context) {
-                                        const punto = context.raw;
-                                        return `${punto.label}: ${punto.x} pac. | ${punto.y} min/prom`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                title: { display: true, text: 'Volumen (Total Pacientes)' },
-                                beginAtZero: true
-                            },
-                            y: {
-                                title: { display: true, text: 'Tiempo Promedio (Minutos)' },
-                                beginAtZero: true,
-                                // Dibujamos una línea de advertencia en los 10 minutos
-                                grid: {
-                                    color: (context) => context.tick.value === 10 ? 'rgba(231, 76, 60, 0.5)' : 'rgba(0,0,0,0.1)',
-                                    lineWidth: (context) => context.tick.value === 10 ? 3 : 1
-                                }
-                            }
-                        }
-                    }
-                });
-
+                // chartProductividad = new Chart(ctxProd, {
+                //     type: 'scatter',
+                //     data: {
+                //         datasets: [{
+                //             label: 'Sucursales',
+                //             data: datasetProductividad,
+                //             backgroundColor: '#27ae60',
+                //             pointRadius: 8,
+                //             pointHoverRadius: 12
+                //         }]
+                //     },
+                //     options: {
+                //         responsive: true,
+                //         maintainAspectRatio: false,
+                //         plugins: {
+                //             tooltip: {
+                //                 callbacks: {
+                //                     // Para que al pasar el mouse diga el nombre de la sucursal
+                //                     label: function(context) {
+                //                         const punto = context.raw;
+                //                         return `${punto.label}: ${punto.x} pac. | ${punto.y} min/prom`;
+                //                     }
+                //                 }
+                //             }
+                //         },
+                //         scales: {
+                //             x: {
+                //                 type: 'linear', // <--- ESTO ES VITAL PARA SCATTER
+                //                 position: 'bottom',
+                //                 title: { display: true, text: 'Volumen (Total Pacientes)' },
+                //                 beginAtZero: true
+                //             },
+                //             y: {
+                //                 title: { display: true, text: 'Tiempo Promedio (Minutos)' },
+                //                 beginAtZero: true
+                //             }
+                //         }
+                //     }
+                // });
                 // --- DIBUJAR GRÁFICO: HORAS PICO ---
                 const ctxHoras = document.getElementById('graficoHorasPico').getContext('2d');
                 if (chartHorasPico) chartHorasPico.destroy();
