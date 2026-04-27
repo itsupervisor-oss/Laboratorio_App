@@ -1,0 +1,13 @@
+# Bases de datos de SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos temporales de SQLite (MUY IMPORTANTE)
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Opcional pero recomendado para Python
+__pycache__/
+*.pyc
