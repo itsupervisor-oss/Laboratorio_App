@@ -4,110 +4,285 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plexus - Satisfacción</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* --- ESTILOS VISUALES GENERALES --- */
         body {
             display: flex;
-            flex-direction: column; /* 👈 Obliga a que los elementos se apilen de arriba hacia abajo */
-            align-items: center; /* Centra todo horizontalmente */
-            min-height: 100vh; /* Ocupa al menos toda la altura de la pantalla */
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
             margin: 0;
-            background: linear-gradient(180deg, #001f4d 0%, #0675AE 100%);
+            background: linear-gradient(135deg, #001f4d 0%, #004b87 100%);
+            font-family: 'Montserrat', sans-serif;
+            color: white;
+            text-align: center;
+            /* 👇 CAMBIO CLAVE: Permite scroll vertical si la tablet es pequeña, pero oculta el horizontal */
+            overflow-x: hidden; 
+            overflow-y: auto;
+            /* Línea inferior institucional fija en la parte inferior */
+            border-bottom: 8px solid #c4d600;
+            box-sizing: border-box;
         }
 
-        .main-container { width: 100%; max-width: 900px; padding: 20px; }
-        .title { color: #ffff00; font-size: 3.2rem; margin-bottom: 10px; }
-        .subtitle { font-size: 1.4rem; margin-bottom: 40px; font-weight: 400; opacity: 0.9; }
+        /* --- CÍRCULOS DE FONDO (MARCA DE AGUA) --- */
+        body::before {
+            content: '';
+            position: fixed; /* 👈 FIJO para que no estire la página */
+            bottom: -15vw; left: -15vw;
+            width: 40vw; height: 40vw;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 0 40px rgba(255, 255, 255, 0.03), 0 0 0 80px rgba(255, 255, 255, 0.01);
+            z-index: -1; pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed; /* 👈 FIJO para que no estire la página */
+            top: -15vw; right: -15vw;
+            width: 40vw; height: 40vw;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 0 40px rgba(255, 255, 255, 0.03), 0 0 0 80px rgba(255, 255, 255, 0.01);
+            z-index: -1; pointer-events: none;
+        }
 
-        .caritas-container { display: flex; justify-content: center; gap: 25px; }
+        .main-container { 
+            width: 95%; /* Usamos un poco más de ancho de la tablet */
+            max-width: 900px; 
+            padding: 20px 10px; /* Reduje un poco el relleno vertical */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1;
+        }
+
+        /* --- LOGO --- */
+        .plexus-logo { 
+            margin-bottom: 15px;
+            margin-top: 15px;
+        }
+        .plexus-logo img {
+            height: 55px; /* Ligeramente más pequeño para hacer espacio */
+            width: auto;
+            object-fit: contain;
+        }
+
+        /* --- TÍTULOS --- */
+        .title { 
+            font-size: 2.5rem; /* Ajustado para tablets */
+            font-weight: 600;
+            margin: 0 0 5px 0; 
+        }
+        .highlight { 
+            color: #c4d600; 
+        }
+        .subtitle { 
+            font-size: 1.2rem; 
+            font-weight: 400; 
+            margin-bottom: 30px; 
+            opacity: 0.9; 
+        }
+
+        /* --- BOTONES DE VOTACIÓN (AHORA CON GRID) --- */
+        .caritas-container { 
+            /* 👇 CAMBIO CLAVE: Grid obliga a crear 3 columnas iguales pase lo que pase */
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            width: 100%;
+            max-width: 850px;
+        }
 
         .carita-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 25px;
-            padding: 30px 20px;
-            font-size: 5.5rem;
+            background: rgba(255, 255, 255, 0.08); 
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 30px 10px; /* 👈 Menos relleno para que no queden gigantes */
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            flex: 1;
-            display: flex; flex-direction: column; align-items: center; gap: 15px;
-            color: white; outline: none;
+            transition: all 0.2s ease;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 15px; /* Menos separación entre carita y texto */
+            color: white; 
+            outline: none;
+            user-select: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* Etiquetas debajo de las caritas */
-        .carita-label { font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; }
-
-        /* Efectos individuales por tipo */
-        .btn-bad:hover { background: rgba(255, 82, 82, 0.2); border-color: #ff5252; transform: scale(1.08); }
-        .btn-neutral:hover { background: rgba(255, 193, 7, 0.2); border-color: #ffc107; transform: scale(1.08); }
-        .btn-good:hover { background: rgba(76, 175, 80, 0.2); border-color: #4caf50; transform: scale(1.08); }
-
-        /* Feedback y Otros */
-        #pantalla-gracias, #pantalla-feedback { display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #pantalla-encuesta { display: flex; flex-direction: column; align-items: center; }
-
-        textarea {
-            width: 100%; max-width: 550px; padding: 20px; border-radius: 15px; 
-            font-size: 1.3rem; border: none; margin-bottom: 25px; font-family: inherit;
+        .carita-btn:hover, .carita-btn:active { 
+            background: rgba(255, 255, 255, 0.15); 
+            transform: scale(0.95); 
+            border-color: #c4d600;
         }
 
-        .btn-enviar { background: #28a745; color: white; border: none; padding: 18px 40px; border-radius: 12px; font-size: 1.3rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .btn-omitir { background: transparent; color: white; border: 1px solid white; padding: 18px 40px; border-radius: 12px; font-size: 1.3rem; cursor: pointer; margin-left: 10px; }
+        /* Iconos SVG */
+        .carita-btn svg { 
+            width: 75px; /* 👈 Iconos un poco más pequeños */
+            height: 75px; 
+            stroke: #c4d600; 
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
 
-        .plexus-logo { 
-            display: flex;
-            justify-content: center;
+        .carita-label { 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            letter-spacing: 1px; 
+        }
+
+        /* --- PANTALLAS OCULTAS (Feedback y Gracias) --- */
+        #pantalla-gracias, #pantalla-feedback { 
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
             width: 100%;
-            margin-top: 50px; /* 👈 CÁMBIALO AQUÍ: En vez de 'auto', le damos 50px fijos de separación */
-            padding-bottom: 30px; 
+        }
+        #pantalla-encuesta { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            width: 100%;
+        }
+
+        /* Formulario de Feedback */
+        textarea {
+            width: 100%; 
+            max-width: 600px; 
+            padding: 15px; 
+            border-radius: 12px; 
+            font-size: 1.2rem; 
+            border: none; 
+            margin-bottom: 20px; 
+            font-family: inherit;
+            outline: none;
+            resize: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        textarea:focus {
+            box-shadow: 0 0 0 3px #c4d600;
+        }
+
+        .botones-feedback {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn-enviar { 
+            background: #c4d600; 
+            color: #001f4d; 
+            border: none; 
+            padding: 15px 40px; 
+            border-radius: 50px; 
+            font-size: 1.2rem; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: transform 0.2s;
+        }
+        .btn-enviar:active { transform: scale(0.95); }
+
+        .btn-omitir { 
+            background: transparent; 
+            color: white; 
+            border: 1px solid white; 
+            padding: 15px 40px; 
+            border-radius: 50px; 
+            font-size: 1.2rem; 
+            font-weight: 600;
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        .btn-omitir:active { background: rgba(255,255,255,0.1); transform: scale(0.95); }
+
+        /* Mensaje de Gracias */
+        .icono-gracias svg {
+            width: 100px;
+            height: 100px;
+            stroke: #c4d600;
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
 
     <div class="main-container">
+        
+        <div class="plexus-logo">
+            <img src="LogoPlexus.png" alt="Plexus Medicina Diagnóstica">
+        </div>
+
         <div id="pantalla-encuesta">
-            <h1 class="title">¿Cómo fue tu experiencia hoy?</h1>
+            <h1 class="title">¿Cómo fue tu <span class="highlight">experiencia</span> hoy?</h1>
             <h2 class="subtitle">Tu opinión es fundamental para brindarte un mejor servicio.</h2>
 
             <div class="caritas-container">
-                <button class="carita-btn btn-bad" onclick="enviarVoto(1)">
-                    🙁 <span class="carita-label">INSATISFECHO</span>
+                <button class="carita-btn" onclick="enviarVoto(1)">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M16 16s-1.5-2-4-2-4 2-4 2"></path>
+                        <line x1="8" y1="9" x2="10" y2="9"></line>
+                        <line x1="14" y1="9" x2="16" y2="9"></line>
+                    </svg>
+                    <span class="carita-label">INSATISFECHO</span>
                 </button>
 
-                <button class="carita-btn btn-neutral" onclick="enviarVoto(3)">
-                    😐 <span class="carita-label">REGULAR</span>
+                <button class="carita-btn" onclick="enviarVoto(3)">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="8" y1="15" x2="16" y2="15"></line>
+                        <line x1="8" y1="9" x2="10" y2="9"></line>
+                        <line x1="14" y1="9" x2="16" y2="9"></line>
+                    </svg>
+                    <span class="carita-label">REGULAR</span>
                 </button>
 
-                <button class="carita-btn btn-good" onclick="enviarVoto(5)">
-                    😊 <span class="carita-label">EXCELENTE</span>
+                <button class="carita-btn" onclick="enviarVoto(5)">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                        <line x1="8" y1="9" x2="10" y2="9"></line>
+                        <line x1="14" y1="9" x2="16" y2="9"></line>
+                    </svg>
+                    <span class="carita-label">EXCELENTE</span>
                 </button>
             </div>
         </div>
 
         <div id="pantalla-feedback">
-            <h1 class="title" style="font-size: 2.8rem;">¿Podemos mejorar en algo?</h1>
-            <p style="font-size: 1.3rem; margin-bottom: 25px;">Tu comentario nos ayuda a crecer.</p>
+            <h1 class="title">¿Podemos <span class="highlight">mejorar</span> en algo?</h1>
+            <p class="subtitle" style="margin-bottom: 25px;">Tu comentario nos ayuda a crecer.</p>
             
             <textarea id="textoComentario" rows="4" placeholder="Escribe aquí tu sugerencia..."></textarea>
             
-            <div>
+            <div class="botones-feedback">
                 <button class="btn-enviar" onclick="enviarVotoFinal()">ENVIAR</button>
                 <button class="btn-omitir" onclick="saltarFeedback()">OMITIR</button>
             </div>
         </div>
 
         <div id="pantalla-gracias">
-            <span style="font-size: 6rem; margin-bottom: 20px;">✨</span>
-            <h1 class="title">¡Muchas gracias!</h1>
+            <div class="icono-gracias">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="8 12 11 15 16 9"></polyline>
+                </svg>
+            </div>
+            <h1 class="title">¡Muchas <span class="highlight">gracias!</span></h1>
             <h2 class="subtitle">Valoramos mucho tu tiempo y preferencia.</h2>
         </div>
-        <div class="plexus-logo">
-            <img src="LogoPlexus.png" alt="Plexus Medicina Diagnóstica" style="height: 80px; width: auto; object-fit: contain;">
-        </div>
-    </div>
 
-    
+    </div>
 
     <script>
         const parametrosURL = new URLSearchParams(window.location.search);
@@ -115,7 +290,7 @@
         const sucursalConfigurada = parametrosURL.get('sucursal');
 
         if (!ciudadConfigurada || !sucursalConfigurada) {
-            alert("⚠️ Error de configuración en la tablet.");
+            alert("⚠️ Error de configuración en la tablet.\nPor favor contacte a sistemas.");
         }
 
         let votoTemporal = 0;
@@ -131,7 +306,9 @@
         }
 
         function saltarFeedback() {
-            if(document.getElementById('textoComentario')) document.getElementById('textoComentario').value = "";
+            if(document.getElementById('textoComentario')) {
+                document.getElementById('textoComentario').value = "";
+            }
             enviarVotoFinal();
         }
 
@@ -159,8 +336,10 @@
                     setTimeout(() => {
                         document.getElementById('pantalla-gracias').style.display = 'none';
                         document.getElementById('pantalla-encuesta').style.display = 'flex';
-                        if (document.getElementById('textoComentario')) document.getElementById('textoComentario').value = '';
-                    }, 3000); 
+                        if (document.getElementById('textoComentario')) {
+                            document.getElementById('textoComentario').value = '';
+                        }
+                    }, 4000); 
                 }
             } catch (error) {
                 console.error("Error de conexión:", error);

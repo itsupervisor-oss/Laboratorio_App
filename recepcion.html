@@ -4,153 +4,294 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plexus - Registro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- ESTILOS VISUALES --- */
-       body {
+        /* --- ESTILOS VISUALES GENERALES --- */
+        body {
             display: flex;
-            flex-direction: column; /* 👈 Obliga a que los elementos se apilen de arriba hacia abajo */
-            align-items: center; /* Centra todo horizontalmente */
-            min-height: 100vh; /* Ocupa al menos toda la altura de la pantalla */
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
             margin: 0;
-            background: linear-gradient(180deg, #001f4d 0%, #0675AE 100%);
-        }
-        .main-container {
-            width: 100%; max-width: 600px; padding: 30px; text-align: center;
-            display: flex; flex-direction: column; align-items: center; height: 80vh; justify-content: space-around;
-        }
-        .title { color: #ffff00; font-weight: 700; font-size: 3rem; margin: 0; }
-        .subtitle { color: #ffff00; font-weight: 600; font-size: 1.5rem; margin: 0; }
-        
-        .input-box {
-            width: 80%; padding: 20px; background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 15px; color: white; font-size: 1.3rem; text-align: center;
-            font-family: 'Montserrat', sans-serif; outline: none; transition: all 0.3s ease;
-        }
-        .input-box:focus { border-color: #ffff00; box-shadow: 0 0 10px rgba(255, 255, 0, 0.5); }
-        
-        .options-container { width: 80%; display: flex; flex-direction: column; gap: 20px; margin-top: 20px;}
-        .option-row { display: flex; align-items: center; gap: 20px; cursor: pointer; transition: transform 0.2s ease; }
-        .option-row:hover { transform: scale(1.02); }
-        
-        .icon-circle {
-            width: 70px; height: 70px; border: 3px solid #ffff00; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center; flex-shrink: 0;
-        }
-        .icon-circle svg { width: 35px; height: 35px; fill: #ffff00; }
-        
-        /* 1. Tu botón original (con dos pequeños agregados) */
-        .glass-button {
-            flex-grow: 1; 
-            padding: 25px; 
-            background: rgba(255, 255, 255, 0.1); 
-            backdrop-filter: blur(5px);
-            border: 3px solid rgba(255, 255, 255, 0.8); 
-            border-radius: 15px; 
+            /* Fondo azul oscuro corporativo con gradiente */
+            background: linear-gradient(135deg, #001f4d 0%, #004b87 100%);
+            font-family: 'Montserrat', sans-serif;
             color: white;
-            font-size: 1.5rem; 
-            font-weight: 600; 
-            text-align: center; 
-            user-select: none;
-
-            /* 👇 AGREGADOS CLAVE 👇 */
-            cursor: pointer; /* Hace que salga la "manito" en la computadora */
-            transition: all 0.2s ease; /* Hace que el cambio de tamaño sea un movimiento suave, no de golpe */
+            overflow: hidden; /* Evita scroll si los círculos del fondo se salen */
         }
 
-        /* 2. La magia de la animación (Para PC y Tablet) */
-        .glass-button:hover,
-        .glass-button:active {
-            /* Al tocarlo, el cristal se vuelve un poco más blanco/sólido */
-            background: rgba(255, 255, 255, 0.3); 
-            
-            /* Efecto táctil: El botón "se hunde" un 5% al presionarlo con el dedo */
-            transform: scale(0.95); 
+        /* --- CÍRCULOS DE FONDO (MARCA DE AGUA) --- */
+        body::before {
+            content: '';
+            position: absolute;
+            bottom: -15vw; left: -15vw;
+            width: 40vw; height: 40vw;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 0 40px rgba(255, 255, 255, 0.03), 0 0 0 80px rgba(255, 255, 255, 0.01);
+            z-index: -1; pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: absolute;
+            top: -15vw; right: -15vw;
+            width: 40vw; height: 40vw;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 0 40px rgba(255, 255, 255, 0.03), 0 0 0 80px rgba(255, 255, 255, 0.01);
+            z-index: -1; pointer-events: none;
+        }
+        
+        .main-container {
+            width: 90%; 
+            max-width: 900px; 
+            padding: 30px; 
+            text-align: center;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            z-index: 1; /* Para que quede por encima de los círculos de fondo */
         }
 
+        /* --- LOGO --- */
         .plexus-logo { 
-            display: flex;
-            justify-content: center;
-            width: 100%;
-            margin-top: 50px; /* 👈 CÁMBIALO AQUÍ: En vez de 'auto', le damos 50px fijos de separación */
-            padding-bottom: 30px; 
+            margin-bottom: 30px;
+            margin-top: 20px;
         }
-        .logo-subtitle { font-weight: 400; font-size: 1rem; display: block; opacity: 0.8; margin-top: -5px; }
+        .plexus-logo img {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
+        }
 
-        /* NUEVO: Esta clase es la que hará la magia de ocultar/mostrar pantallas */
+        /* --- TÍTULOS --- */
+        .title { 
+            font-weight: 600; 
+            font-size: 2.5rem; 
+            margin: 0 0 30px 0; 
+        }
+        .highlight { 
+            color: #c4d600; 
+        }
+
+        /* --- INPUT BÚSQUEDA --- */
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 50px;
+            padding: 5px 20px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        .input-icon {
+            width: 24px;
+            height: 24px;
+            fill: #004b87; 
+            margin-right: 10px;
+        }
+        .input-wrapper input {
+            border: none;
+            outline: none;
+            font-size: 1.2rem;
+            flex-grow: 1;
+            padding: 10px;
+            color: #333;
+            font-family: 'Montserrat', sans-serif;
+            background: transparent;
+        }
+        .input-wrapper input::placeholder {
+            color: #b0b0b0;
+            font-weight: 500;
+        }
+
+        /* --- SEPARADOR --- */
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+            max-width: 700px;
+            margin: 20px 0 30px 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #c4d600; /* Texto en verde como en la imagen */
+        }
+        .separator::before, .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(196, 214, 0, 0.4); 
+            margin: 0 20px;
+        }
+
+        /* --- BOTONES (TARJETAS HORIZONTALES) --- */
+        .options-container-row { 
+            display: flex; 
+            flex-direction: row; 
+            gap: 20px; 
+            width: 100%; 
+            max-width: 800px; 
+            justify-content: center; 
+        }
+        
+        .option-card { 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            /* Fondo azul oscuro semi-translúcido */
+            background: rgba(255, 255, 255, 0.08); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            border-radius: 12px; 
+            padding: 15px 25px; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            user-select: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .option-card:hover, .option-card:active { 
+            background: rgba(255, 255, 255, 0.15); 
+            transform: scale(0.98); 
+            border-color: #c4d600;
+        }
+
+        /* Círculo blanco con el icono adentro */
+        .card-icon-circle {
+            width: 50px; 
+            height: 50px; 
+            background: white; 
+            border-radius: 50%;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-shrink: 0;
+            margin-right: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Iconos ahora en color institucional */
+        .card-icon-circle svg { 
+            width: 25px; 
+            height: 25px; 
+            fill: #c4d600; 
+        }
+
+        .card-text {
+            flex-grow: 1;
+            text-align: left;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        .card-arrow {
+            font-size: 1.5rem;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        /* --- ESTADOS Y UTILIDADES --- */
         .oculto { display: none !important; }
 
-        /* Botón de volver atrás */
         .btn-volver {
-            color: white; text-decoration: underline; cursor: pointer; margin-top: 20px; font-size: 1.2rem; opacity: 0.8;
+            color: white; 
+            text-decoration: none; 
+            cursor: pointer; 
+            margin-top: 40px; 
+            font-size: 1.1rem; 
+            opacity: 0.7;
+            transition: opacity 0.2s;
         }
+        .btn-volver:hover { opacity: 1; }
+
+        #pantalla-exito h1 { color: #c4d600; font-size: 3.5rem; margin-bottom: 15px; }
+        #pantalla-exito p { font-size: 1.5rem; max-width: 80%; line-height: 1.5; }
     </style>
 </head>
 <body>
 
     <div class="main-container">
         
-        <div id="pantalla-1" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;">
-            <h1 class="title">Registra tu nombre</h1>
-            <input type="text" id="nombreInput" class="input-box" placeholder="Ingrese su nombre" required>
+        <div class="plexus-logo">
+            <img src="LogoPlexus.png" alt="Plexus Medicina Diagnóstica">
+        </div>
+
+        <div id="pantalla-1" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <h1 class="title">Registra tu <span class="highlight">nombre</span></h1>
             
-            <h2 class="subtitle" style="margin-top: 20px;">Selecciona un tipo de atención</h2>
-            <div class="options-container">
-                <div class="option-row" onclick="avanzarPaso2('Normal')">
-                    <div class="icon-circle"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>
-                    <div class="glass-button">Normal</div>
+            <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <input type="text" id="nombreInput" placeholder="Ingrese su nombre" required autocomplete="off">
+            </div>
+            
+            <div class="separator">
+                <span>Selecciona un tipo de atención</span>
+            </div>
+            
+            <div class="options-container-row">
+                <div class="option-card" onclick="avanzarPaso2('Normal')">
+                    <div class="card-icon-circle">
+                        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </div>
+                    <span class="card-text">Normal</span>
+                    <span class="card-arrow">&gt;</span>
                 </div>
-                <div class="option-row" onclick="avanzarPaso2('Preferencial')">
-                    <div class="icon-circle"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg></div>
-                    <div class="glass-button">Preferencial</div>
+
+                <div class="option-card" onclick="avanzarPaso2('Preferencial')">
+                    <div class="card-icon-circle">
+                        <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    </div>
+                    <span class="card-text">Preferencial</span>
+                    <span class="card-arrow">&gt;</span>
                 </div>
             </div>
         </div>
 
-        <div id="pantalla-2" class="oculto" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;">
-            <h1 class="title">¿Qué necesitas?</h1>
-            <h2 class="subtitle" id="saludoPaciente" style="margin-bottom: 20px;"></h2>
+        <div id="pantalla-2" class="oculto" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <h1 class="title">¿En qué podemos <span class="highlight">ayudarte?</span></h1>
+            <h2 class="separator" id="saludoPaciente" style="margin-bottom: 30px;"></h2>
             
-            <div class="options-container">
-                <div class="option-row" onclick="enviarTurnoFinal('Análisis')">
-                    <div class="icon-circle">🔬</div> <div class="glass-button">Análisis de Laboratorio</div>
+            <div class="options-container-row" style="flex-wrap: wrap;">
+                <div class="option-card" onclick="enviarTurnoFinal('Análisis')">
+                    <div class="card-icon-circle"><svg viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.9959.9959 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96c.39-.39.39-1.02 0-1.41z"/></svg></div>
+                    <span class="card-text">Análisis de Laboratorio</span>
+                    <span class="card-arrow">&gt;</span>
                 </div>
-                <div class="option-row" onclick="enviarTurnoFinal('Muestra Pendiente')">
-                    <div class="icon-circle">🧪</div>
-                    <div class="glass-button">Muestra Pendiente</div>
+                
+                <div class="option-card" onclick="enviarTurnoFinal('Muestra Pendiente')">
+                    <div class="card-icon-circle"><svg viewBox="0 0 24 24"><path d="M19 8H5c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2zm-2 6H7v-4h10v4z"/></svg></div>
+                    <span class="card-text">Muestra Pendiente</span>
+                    <span class="card-arrow">&gt;</span>
                 </div>
-                <div class="option-row" onclick="enviarTurnoFinal('Consulta')">
-                    <div class="icon-circle">🩺</div>
-                    <div class="glass-button">Consulta</div>
+            </div>
+            
+            <div class="options-container-row" style="margin-top: 20px;">
+                <div class="option-card" onclick="enviarTurnoFinal('Consulta')" style="max-width: 400px;">
+                    <div class="card-icon-circle"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg></div>
+                    <span class="card-text">Consulta Info / Precios</span>
+                    <span class="card-arrow">&gt;</span>
                 </div>
             </div>
 
-            <div class="btn-volver" onclick="volverPaso1()">← Volver atrás</div>
-        </div><div id="pantalla-exito" class="oculto" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 40px;">
-            <h1 style="color: #28a745; font-size: 3rem; margin-bottom: 10px;">¡Gracias!</h1>
-            <p style="font-size: 1.5rem; color: #ffffff; text-align: center; max-width: 80%;">
-                Por favor tome asiento, enseguida el personal le llamará por su nombre para atenderlo.
+            <div class="btn-volver" onclick="volverPaso1()">← Volver atrás y corregir nombre</div>
+        </div>
+
+        <div id="pantalla-exito" class="oculto" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 60px;">
+            <h1>¡Gracias!</h1>
+            <p>
+                Por favor toma asiento, enseguida nuestro personal te llamará por tu nombre.
             </p>
         </div>
-        <div class="plexus-logo">
-            <img src="LogoPlexus.png" alt="Plexus Medicina Diagnóstica" style="height: 80px; width: auto; object-fit: contain;">
-        </div>
+
     </div>
-    
 
     <script>
-        // 1. LEER LA URL: Buscamos los parámetros ocultos
         const parametrosURL = new URLSearchParams(window.location.search);
         const ciudadConfigurada = parametrosURL.get('ciudad');
         const sucursalConfigurada = parametrosURL.get('sucursal');
 
-        // 2. SEGURIDAD: Si la tablet no está configurada, lanzamos una alerta
         if (!ciudadConfigurada || !sucursalConfigurada) {
             alert("⚠️ ERROR DE CONFIGURACIÓN:\nEsta tablet no tiene asignada una ciudad o sucursal.\nPor favor, contacte a sistemas.");
-            // Ocultamos todo para que no puedan usarla mal
             document.querySelector('.main-container').style.display = 'none';
-        } else {
-            console.log("Tablet configurada para:", ciudadConfigurada, "-", sucursalConfigurada);
         }
 
         let tipoAtencionGuardado = "";
@@ -158,11 +299,13 @@
         function avanzarPaso2(tipoAtencion) {
             const nombre = document.getElementById('nombreInput').value;
             if (!nombre || nombre.trim() === "") {
-                alert("Por favor, ingrese su nombre primero.");
+                alert("Por favor, ingresa tu nombre para continuar.");
+                document.getElementById('nombreInput').focus();
                 return;
             }
             tipoAtencionGuardado = tipoAtencion;
-            document.getElementById('saludoPaciente').innerText = "Hola " + nombre.split(' ') + ", selecciona tu servicio:";
+            document.getElementById('saludoPaciente').innerHTML = `<span>Hola <b>${nombre.split(' ')}</b>, selecciona el servicio</span>`;
+            
             document.getElementById('pantalla-1').classList.add('oculto');
             document.getElementById('pantalla-2').classList.remove('oculto');
         }
@@ -184,6 +327,7 @@
             };
 
             try {
+                // TU RUTA SIGUE EXACTAMENTE IGUAL
                 const respuesta = await fetch('http://192.168.100.19:8000/turnos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -191,16 +335,13 @@
                 });
 
                 if (respuesta.ok) {
-                    // 1. Quitamos el alert() feo
-                    // 2. Ocultamos la pantalla de botones y mostramos el mensaje amable
                     document.getElementById('pantalla-2').classList.add('oculto');
                     document.getElementById('pantalla-exito').classList.remove('oculto');
 
-                    // 3. Temporizador: Esperamos 4 segundos (4000 milisegundos) y reiniciamos
                     setTimeout(() => {
                         document.getElementById('pantalla-exito').classList.add('oculto');
-                        document.getElementById('nombreInput').value = ""; // Limpiamos el nombre
-                        volverPaso1(); // Volvemos a la pantalla principal
+                        document.getElementById('nombreInput').value = ""; 
+                        volverPaso1(); 
                     }, 5000); 
 
                 } else {
