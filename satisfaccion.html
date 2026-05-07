@@ -13,125 +13,104 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            /* Fondo azul oscuro corporativo alineado con recepción */
             background: linear-gradient(135deg, #001f4d 0%, #004b87 100%);
             font-family: 'Montserrat', sans-serif;
             color: white;
             text-align: center;
-            /* 👇 CAMBIO CLAVE: Permite scroll vertical si la tablet es pequeña, pero oculta el horizontal */
-            overflow-x: hidden; 
-            overflow-y: auto;
-            /* Línea inferior institucional fija en la parte inferior */
-            border-bottom: 8px solid #c4d600;
-            box-sizing: border-box;
-        }
-
-        /* --- CÍRCULOS DE FONDO (MARCA DE AGUA) --- */
-        body::before {
-            content: '';
-            position: fixed; /* 👈 FIJO para que no estire la página */
-            bottom: -15vw; left: -15vw;
-            width: 40vw; height: 40vw;
-            border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 0 0 40px rgba(255, 255, 255, 0.03), 0 0 0 80px rgba(255, 255, 255, 0.01);
-            z-index: -1; pointer-events: none;
-        }
-        body::after {
-            content: '';
-            position: fixed; /* 👈 FIJO para que no estire la página */
-            top: -15vw; right: -15vw;
-            width: 40vw; height: 40vw;
-            border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 0 0 40px rgba(255, 255, 255, 0.03), 0 0 0 80px rgba(255, 255, 255, 0.01);
-            z-index: -1; pointer-events: none;
         }
 
         .main-container { 
-            width: 95%; /* Usamos un poco más de ancho de la tablet */
+            width: 90%; 
             max-width: 900px; 
-            padding: 20px 10px; /* Reduje un poco el relleno vertical */
+            padding: 30px; 
             display: flex;
             flex-direction: column;
             align-items: center;
-            z-index: 1;
         }
 
         /* --- LOGO --- */
         .plexus-logo { 
-            margin-bottom: 15px;
-            margin-top: 15px;
+            margin-bottom: 20px;
+            margin-top: 20px;
         }
         .plexus-logo img {
-            height: 55px; /* Ligeramente más pequeño para hacer espacio */
+            height: 60px;
             width: auto;
             object-fit: contain;
         }
 
         /* --- TÍTULOS --- */
         .title { 
-            font-size: 2.5rem; /* Ajustado para tablets */
+            font-size: 3rem; 
             font-weight: 600;
-            margin: 0 0 5px 0; 
+            margin: 0 0 10px 0; 
         }
         .highlight { 
-            color: #c4d600; 
+            color: #c4d600; /* Verde/Amarillo institucional */
         }
         .subtitle { 
-            font-size: 1.2rem; 
+            font-size: 1.3rem; 
             font-weight: 400; 
-            margin-bottom: 30px; 
+            margin-bottom: 40px; 
             opacity: 0.9; 
         }
 
-        /* --- BOTONES DE VOTACIÓN (AHORA CON GRID) --- */
+        /* --- BOTONES DE VOTACIÓN (ESTILO TARJETA) --- */
         .caritas-container { 
-            /* 👇 CAMBIO CLAVE: Grid obliga a crear 3 columnas iguales pase lo que pase */
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 15px; 
+            display: flex; 
+            justify-content: center; 
+            gap: 20px; 
             width: 100%;
-            max-width: 850px;
+            max-width: 800px;
         }
 
         .carita-btn {
-            background: rgba(255, 255, 255, 0.08); 
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 15px;
-            padding: 30px 10px; /* 👈 Menos relleno para que no queden gigantes */
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            padding: 40px 20px;
             cursor: pointer;
             transition: all 0.2s ease;
+            flex: 1;
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center; 
-            gap: 15px; /* Menos separación entre carita y texto */
+            gap: 20px;
             color: white; 
             outline: none;
             user-select: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .carita-btn:hover, .carita-btn:active { 
             background: rgba(255, 255, 255, 0.15); 
-            transform: scale(0.95); 
+            transform: scale(0.95); /* Efecto táctil de hundimiento */
             border-color: #c4d600;
         }
 
+        /* Círculo blanco para el icono */
+        .icon-circle-white {
+            width: 80px; 
+            height: 80px; 
+            background: white; 
+            border-radius: 50%;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
         /* Iconos SVG */
-        .carita-btn svg { 
-            width: 75px; /* 👈 Iconos un poco más pequeños */
-            height: 75px; 
-            stroke: #c4d600; 
-            fill: none;
-            stroke-width: 1.8;
-            stroke-linecap: round;
-            stroke-linejoin: round;
+        .icon-circle-white svg { 
+            width: 40px; 
+            height: 40px; 
+            fill: #004b87; /* Azul corporativo */
         }
 
         .carita-label { 
-            font-size: 1.1rem; 
-            font-weight: 700; 
+            font-size: 1.2rem; 
+            font-weight: 600; 
             letter-spacing: 1px; 
         }
 
@@ -154,16 +133,15 @@
         textarea {
             width: 100%; 
             max-width: 600px; 
-            padding: 15px; 
-            border-radius: 12px; 
+            padding: 20px; 
+            border-radius: 15px; 
             font-size: 1.2rem; 
             border: none; 
-            margin-bottom: 20px; 
+            margin-bottom: 25px; 
             font-family: inherit;
             outline: none;
             resize: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            background: rgba(255, 255, 255, 0.95);
         }
         textarea:focus {
             box-shadow: 0 0 0 3px #c4d600;
@@ -205,11 +183,7 @@
         .icono-gracias svg {
             width: 100px;
             height: 100px;
-            stroke: #c4d600;
-            fill: none;
-            stroke-width: 1.5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
+            fill: #c4d600;
             margin-bottom: 20px;
         }
     </style>
@@ -228,32 +202,23 @@
 
             <div class="caritas-container">
                 <button class="carita-btn" onclick="enviarVoto(1)">
-                    <svg viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M16 16s-1.5-2-4-2-4 2-4 2"></path>
-                        <line x1="8" y1="9" x2="10" y2="9"></line>
-                        <line x1="14" y1="9" x2="16" y2="9"></line>
-                    </svg>
+                    <div class="icon-circle-white">
+                        <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
+                    </div>
                     <span class="carita-label">INSATISFECHO</span>
                 </button>
 
                 <button class="carita-btn" onclick="enviarVoto(3)">
-                    <svg viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="8" y1="15" x2="16" y2="15"></line>
-                        <line x1="8" y1="9" x2="10" y2="9"></line>
-                        <line x1="14" y1="9" x2="16" y2="9"></line>
-                    </svg>
+                    <div class="icon-circle-white">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
+                    </div>
                     <span class="carita-label">REGULAR</span>
                 </button>
 
                 <button class="carita-btn" onclick="enviarVoto(5)">
-                    <svg viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                        <line x1="8" y1="9" x2="10" y2="9"></line>
-                        <line x1="14" y1="9" x2="16" y2="9"></line>
-                    </svg>
+                    <div class="icon-circle-white">
+                        <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+                    </div>
                     <span class="carita-label">EXCELENTE</span>
                 </button>
             </div>
@@ -273,10 +238,7 @@
 
         <div id="pantalla-gracias">
             <div class="icono-gracias">
-                <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="8 12 11 15 16 9"></polyline>
-                </svg>
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
             </div>
             <h1 class="title">¡Muchas <span class="highlight">gracias!</span></h1>
             <h2 class="subtitle">Valoramos mucho tu tiempo y preferencia.</h2>
@@ -297,9 +259,11 @@
 
         function enviarVoto(puntajeSeleccionado) {
             votoTemporal = puntajeSeleccionado;
+            // Si el voto es 5 (Excelente), salta directo al final
             if (puntajeSeleccionado === 5) {
                 enviarVotoFinal();
             } else {
+                // Si es menor a 5, pide feedback
                 document.getElementById('pantalla-encuesta').style.display = 'none';
                 document.getElementById('pantalla-feedback').style.display = 'flex';
             }
@@ -322,6 +286,7 @@
             };
 
             try {
+                // TU IP Y RUTA EXACTAS
                 const respuesta = await fetch('http://192.168.100.19:8000/votar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -339,7 +304,7 @@
                         if (document.getElementById('textoComentario')) {
                             document.getElementById('textoComentario').value = '';
                         }
-                    }, 4000); 
+                    }, 4000); // Se queda 4 segundos en la pantalla de gracias
                 }
             } catch (error) {
                 console.error("Error de conexión:", error);
