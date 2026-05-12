@@ -125,7 +125,7 @@
 
         async function cargarPacientes() {
             try {
-                const respuesta = await fetch(`http://192.168.100.19:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
+                const respuesta = await fetch(`http://192.168.1.62:8000/turnos?ciudad=${ciudadActiva}&sucursal=${sucursalActiva}`);
                 const turnos = await respuesta.json();
                 
                 let cntDerivados = 0;
@@ -179,7 +179,7 @@
         // 🟢 NUEVA FUNCIÓN: Se comunica con la ruta que creamos en main.py
         async function llamarPaciente(idTurno) {
             try {
-                const respuesta = await fetch(`http://192.168.100.19:8000/iniciar_muestra/${idTurno}`, { method: 'PUT' });
+                const respuesta = await fetch(`http://192.168.1.62:8000/iniciar_muestra/${idTurno}`, { method: 'PUT' });
                 if(respuesta.ok) cargarPacientes();
             } catch (error) {
                 alert("Error al conectar con el servidor.");
@@ -188,7 +188,7 @@
 
         // Función original que ya tenías para finalizar
         async function cambiarEstado(id_turno, nuevo_estado) {
-            let url = `http://192.168.100.19:8000/turnos/${id_turno}?nuevo_estado=${nuevo_estado}`;
+            let url = `http://192.168.1.62:8000/turnos/${id_turno}?nuevo_estado=${nuevo_estado}`;
 
             // Si el estado es "Muestra Tomada", obligamos a que haya un nombre seleccionado
             if (nuevo_estado === 'Muestra Tomada') {
@@ -227,7 +227,7 @@
             const sucursal = params.get('sucursal') || 'SanJorge';
 
             try {
-                const response = await fetch(`http://192.168.100.19:8000/tomadores?ciudad=${ciudad}&sucursal=${sucursal}`);
+                const response = await fetch(`http://192.168.1.62:8000/tomadores?ciudad=${ciudad}&sucursal=${sucursal}`);
                 const data = await response.json();
                 
                 const combo = document.getElementById('comboTomador');
